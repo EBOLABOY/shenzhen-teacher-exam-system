@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Upload, Database, FileText, BarChart3, Key, Users, Plus, Copy, Check, Sparkles, Settings } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { GlassCard, GlassButton, GlassContainer } from '@/components/ui/GlassCard'
+import { GlassCard, GlassButton, GlassContainer } from '@/components/ui/GlassCard.tsx'
 import ImportTool from './import-tool'
 
 export default function AdminPage() {

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { GlassCard, GlassButton, GlassContainer } from '@/components/ui/GlassCard'
+import { GlassCard, GlassButton, GlassContainer } from '@/components/ui/GlassCard.tsx'
 
 export default function Login() {
   const router = useRouter()

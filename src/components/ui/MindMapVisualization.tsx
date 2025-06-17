@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { GlassCard } from '@/components/ui/GlassCard.tsx'
 import { ChevronRight, ChevronDown, Brain, Lightbulb, Target } from 'lucide-react'
 
 interface AIAnalysisResult {
