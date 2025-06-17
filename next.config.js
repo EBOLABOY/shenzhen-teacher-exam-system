@@ -14,6 +14,10 @@ const nextConfig = {
   },
   webpack: (config) => {
     config.resolve.extensions = ['.tsx', '.ts', '.js', '.jsx', '.json']
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src')
+    }
     return config
   }
 }
