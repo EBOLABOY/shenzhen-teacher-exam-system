@@ -51,37 +51,11 @@ coverage/
 *.tmp
 *.temp
 
-# Database and scripts (development only)
-*.js
-!src/**/*.js
-!next.config.js
-!tailwind.config.js
-!scripts/**/*.js
+# Development scripts (keep these for development)
+# analyze_query_methods.js
+# check-database.js
+# debug_*.js
+# test_*.js
 
-# Keep important JS files
-!node_modules/
-analyze_query_methods.js
-check-database.js
-check_*.js
-create_*.js
-debug_*.js
-deduplicate_*.js
-find_*.js
-fix*.js
-import_*.js
-quick-*.js
-run-*.js
-setup_*.js
-smart_*.js
-test_*.js
-update_*.js
-
-# Database files
-*.sql
-!database/schema.sql
-
-# JSON data files
-*.json
-!package.json
-!package-lock.json
-!tsconfig.json
+# Temporary build files
+*.tsbuildinfo
