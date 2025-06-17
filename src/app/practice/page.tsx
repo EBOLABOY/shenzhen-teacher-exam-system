@@ -181,15 +181,49 @@ function PracticeContent() {
   const fetchQuestions = async (currentUser = user) => {
     if (!currentUser) return
     try {
-      const { data: allQuestions, error } = await supabase
+      // 1. 获取用户已做过的题目ID
+      const { data: userAnswers, error: answersError } = await supabase
+        .from('user_answers')
+        .select('question_id')
+        .eq('user_id', currentUser.id)
+
+      if (answersError) {
+        console.error('获取用户答题记录失败:', answersError)
+      }
+
+      const answeredQuestionIds = userAnswers?.map(answer => answer.question_id) || []
+
+      // 2. 构建查询，排除已做过的题目
+      let query = supabase
         .from('questions')
         .select('*')
-        .limit(20)
+
+      // 如果有已做过的题目，排除它们
+      if (answeredQuestionIds.length > 0) {
+        query = query.not('id', 'in', `(${answeredQuestionIds.join(',')})`)
+      }
+
+      // 3. 使用PostgreSQL的RANDOM()函数进行真正的随机排序
+      const { data: allQuestions, error } = await query
+        .order('id', { ascending: false }) // 先按ID排序
+        .limit(100) // 获取更多题目用于随机选择
+
       if (error) throw error
+
       if (allQuestions && allQuestions.length > 0) {
-        const shuffled = allQuestions.sort(() => 0.5 - Math.random())
+        // 4. 从获取的题目中随机选择20道
+        const shuffled = allQuestions
+          .sort(() => Math.random() - 0.5) // 更好的随机排序
+          .slice(0, Math.min(20, allQuestions.length))
+
         setQuestions(shuffled)
         setStartTime(new Date())
+
+        console.log(`获取到 ${allQuestions.length} 道未做题目，选择了 ${shuffled.length} 道进行练习`)
+        console.log(`已排除 ${answeredQuestionIds.length} 道已做题目`)
+      } else {
+        // 如果没有未做的题目，提示用户
+        alert('恭喜！您已经完成了所有题目的练习。可以重新开始或查看错题本进行复习。')
       }
     } catch (error) {
       console.error('获取题目失败:', error)
@@ -225,9 +259,25 @@ function PracticeContent() {
       setScore(prev => prev + 1)
     }
 
-    // 如果是任务模式，记录答题进度
-    if (isTaskMode && currentTask) {
-      try {
+    try {
+      // 记录用户答题记录（无论是否为任务模式）
+      await supabase
+        .from('user_answers')
+        .insert({
+          user_id: user.id,
+          question_id: currentQuestion.id,
+          selected_answer: selectedAnswer,
+          is_correct: isCorrect,
+          time_spent: startTime ? Math.round((Date.now() - startTime.getTime()) / 1000) : 0
+        })
+
+      // 如果答错了，添加到错题本（无论是否为任务模式）
+      if (!isCorrect) {
+        await addToWrongQuestions(currentQuestion, selectedAnswer)
+      }
+
+      // 如果是任务模式，记录任务进度
+      if (isTaskMode && currentTask) {
         // 检查是否已经回答过这道题
         const existingProgress = taskProgress.find(p => p.question_id === currentQuestion.id)
 
@@ -275,15 +325,10 @@ function PracticeContent() {
             correct_answer: currentQuestion.answer,
             is_correct: isCorrect
           }])
-
-          // 如果答错了，添加到错题本
-          if (!isCorrect) {
-            await addToWrongQuestions(currentQuestion, selectedAnswer)
-          }
         }
-      } catch (error) {
-        console.error('记录答题进度失败:', error)
       }
+    } catch (error) {
+      console.error('记录答题进度失败:', error)
     }
   }
 
@@ -375,6 +420,26 @@ function PracticeContent() {
     }
   }
 
+  const handleResetAllProgress = async () => {
+    if (confirm('确定要清除所有答题记录吗？这将允许您重新做所有题目，但会丢失所有学习进度。')) {
+      try {
+        // 删除用户的所有答题记录
+        await supabase
+          .from('user_answers')
+          .delete()
+          .eq('user_id', user.id)
+
+        alert('答题记录已清除，现在可以重新做所有题目了！')
+
+        // 重新获取题目
+        fetchQuestions()
+      } catch (error) {
+        console.error('清除答题记录失败:', error)
+        alert('清除答题记录失败，请稍后重试')
+      }
+    }
+  }
+
   const getOptionClass = (option: string) => {
     const baseClass = "w-full text-left p-5 rounded-xl border-2 transition-all duration-300 flex items-center group hover:scale-[1.02] hover:shadow-lg"
     if (!showExplanation) {
@@ -413,9 +478,28 @@ function PracticeContent() {
         <GlassContainer maxWidth="md">
           <GlassCard className="text-center">
             <Brain className="w-16 h-16 mx-auto mb-4 text-slate-400" />
-            <h3 className="text-xl font-bold text-slate-800 mb-2">暂无题目数据</h3>
-            <p className="text-slate-600 mb-6">请联系管理员添加题目或稍后再试</p>
-            <GlassButton variant="primary" href="/">返回首页</GlassButton>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">
+              {questions.length === 0 ? '恭喜！所有题目已完成' : '暂无题目数据'}
+            </h3>
+            <p className="text-slate-600 mb-6">
+              {questions.length === 0
+                ? '您已经完成了所有题目的练习！可以查看错题本进行复习，或清除进度重新开始。'
+                : '请联系管理员添加题目或稍后再试'
+              }
+            </p>
+            <div className="flex gap-3 justify-center">
+              <GlassButton variant="primary" href="/">返回首页</GlassButton>
+              <GlassButton variant="secondary" href="/wrong-questions">查看错题本</GlassButton>
+              {questions.length === 0 && (
+                <GlassButton
+                  variant="glass"
+                  onClick={handleResetAllProgress}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  重新开始所有题目
+                </GlassButton>
+              )}
+            </div>
           </GlassCard>
         </GlassContainer>
       </div>
@@ -651,14 +735,28 @@ function PracticeContent() {
             上一题
           </GlassButton>
 
-          <GlassButton
-            onClick={handleReset}
-            variant="secondary"
-            size="md"
-          >
-            <RotateCcw className="h-4 w-4" />
-            重新开始
-          </GlassButton>
+          <div className="flex gap-2">
+            <GlassButton
+              onClick={handleReset}
+              variant="secondary"
+              size="md"
+            >
+              <RotateCcw className="h-4 w-4" />
+              重新开始
+            </GlassButton>
+
+            {!isTaskMode && (
+              <GlassButton
+                onClick={handleResetAllProgress}
+                variant="glass"
+                size="md"
+                className="text-red-600 hover:text-red-800 border-red-200 hover:border-red-300"
+              >
+                <RotateCcw className="h-4 w-4" />
+                清除进度
+              </GlassButton>
+            )}
+          </div>
 
           <GlassButton
             onClick={handleNextQuestion}

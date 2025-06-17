@@ -17,16 +17,37 @@ export async function GET(request: NextRequest) {
         },
       }
     )
+
+    // 获取当前用户
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '20')
     const subject = searchParams.get('subject')
     const difficulty = searchParams.get('difficulty')
     const random = searchParams.get('random') === 'true'
+    const excludeAnswered = searchParams.get('exclude_answered') === 'true'
 
     // 构建查询
     let query = supabase
       .from('questions')
       .select('*')
+
+    // 如果需要排除已做题目且用户已登录
+    if (excludeAnswered && user) {
+      // 获取用户已做过的题目ID
+      const { data: userAnswers } = await supabase
+        .from('user_answers')
+        .select('question_id')
+        .eq('user_id', user.id)
+
+      const answeredQuestionIds = userAnswers?.map(answer => answer.question_id) || []
+
+      // 排除已做过的题目
+      if (answeredQuestionIds.length > 0) {
+        query = query.not('id', 'in', `(${answeredQuestionIds.join(',')})`)
+      }
+    }
 
     // 根据科目筛选
     if (subject) {
@@ -38,16 +59,14 @@ export async function GET(request: NextRequest) {
       query = query.eq('difficulty', difficulty)
     }
 
-    // 限制返回数量
-    query = query.limit(limit)
-
-    // 如果需要随机排序
+    // 如果需要随机排序，先获取更多数据再随机选择
     if (random) {
-      // PostgreSQL 随机排序
-      query = query.order('id', { ascending: false })
+      query = query.limit(Math.max(limit * 5, 100)) // 获取更多数据用于随机选择
     } else {
-      query = query.order('id', { ascending: true })
+      query = query.limit(limit)
     }
+
+    query = query.order('id', { ascending: !random })
 
     const { data: questions, error } = await query
 
@@ -55,10 +74,21 @@ export async function GET(request: NextRequest) {
       throw error
     }
 
+    let finalQuestions = questions || []
+
+    // 如果需要随机排序，从获取的数据中随机选择
+    if (random && finalQuestions.length > 0) {
+      finalQuestions = finalQuestions
+        .sort(() => Math.random() - 0.5)
+        .slice(0, limit)
+    }
+
     return NextResponse.json({
       success: true,
-      data: questions || [],
-      total: questions?.length || 0
+      data: finalQuestions,
+      total: finalQuestions.length,
+      excluded_count: excludeAnswered && user ?
+        (await supabase.from('user_answers').select('question_id', { count: 'exact' }).eq('user_id', user.id)).count || 0 : 0
     })
   } catch (error) {
     console.error('获取题目失败:', error)
