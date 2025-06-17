@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { GlassCard, GlassButton, GlassContainer } from '@/components/ui/index'
+import { GlassCard, GlassButton, GlassContainer } from '@/components/ui/GlassCard'
 import { 
   Settings, 
   User, 

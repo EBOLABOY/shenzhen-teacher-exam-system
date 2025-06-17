@@ -1,7 +1,7 @@
 'use client'
 
 import { User, Menu, X, LogOut, Settings, Sparkles } from 'lucide-react'
-import { GlassButton } from '@/components/ui/index'
+import { GlassButton } from '@/components/ui/GlassCard'
 import { NavigationItem } from '@/hooks/useTopNavigation'
 
 interface MobileNavigationProps {
