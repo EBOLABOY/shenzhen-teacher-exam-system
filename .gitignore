@@ -1,0 +1,87 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+build/
+
+# Environment variables
+.env
+# .env.local  # 允许上传.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Temporary files
+*.tmp
+*.temp
+
+# Database and scripts (development only)
+*.js
+!src/**/*.js
+!next.config.js
+!tailwind.config.js
+!scripts/**/*.js
+
+# Keep important JS files
+!node_modules/
+analyze_query_methods.js
+check-database.js
+check_*.js
+create_*.js
+debug_*.js
+deduplicate_*.js
+find_*.js
+fix*.js
+import_*.js
+quick-*.js
+run-*.js
+setup_*.js
+smart_*.js
+test_*.js
+update_*.js
+
+# Database files
+*.sql
+!database/schema.sql
+
+# JSON data files
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
