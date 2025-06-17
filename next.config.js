@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js']
-  },
+  serverExternalPackages: ['@supabase/supabase-js'],
   typescript: {
     // 暂时跳过类型检查以加快构建
     ignoreBuildErrors: true,
