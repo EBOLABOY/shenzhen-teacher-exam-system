@@ -8,16 +8,7 @@ export {
   GlassContainer
 } from './GlassCard'
 
-export { AnalysisTimeline } from './AnalysisTimeline'
-export { MindMapVisualization } from './MindMapVisualization'
-export { ThinkingAnimation } from './ThinkingAnimation'
-
-// 默认导出（为了兼容性）
-export default {
-  GlassCard,
-  GlassButton,
-  GlassInput,
-  GlassNav,
-  LoadingGlass,
-  GlassContainer
-}
+// 导入默认导出并重新导出为命名导出
+export { default as AnalysisTimeline } from './AnalysisTimeline'
+export { default as MindMapVisualization } from './MindMapVisualization'
+export { default as ThinkingAnimation } from './ThinkingAnimation'
