@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { GlassCard, GlassButton, GlassContainer } from '@/components/ui/GlassCard'
+import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
 import { BookOpen, Brain, TrendingUp, ArrowLeft, RefreshCw, Sparkles, Zap, ChevronDown, ChevronUp, Download } from 'lucide-react'
 import { DIFFICULTY_MAPPING, QUESTION_TYPE_MAPPING } from '@/config/ai-prompts'
 import ThinkingAnimation from '@/components/ui/ThinkingAnimation'

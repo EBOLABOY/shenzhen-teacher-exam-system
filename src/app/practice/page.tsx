@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, RotateCcw, CheckCircle, LogOut, Brain, Target, Clock, Award, Sparkles, ArrowLeft } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { GlassCard, GlassButton, GlassContainer, LoadingGlass } from '@/components/ui/GlassCard'
+import { GlassCard, GlassButton, GlassContainer, LoadingGlass } from '@/components/ui'
 
 function PracticeContent() {
   const router = useRouter()

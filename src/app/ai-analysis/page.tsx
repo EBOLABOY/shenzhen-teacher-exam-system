@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { GlassCard, GlassButton, GlassContainer } from '@/components/ui/GlassCard'
+import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
 import { ArrowLeft, Brain, Download, Share2, BookOpen, Sparkles } from 'lucide-react'
 
 export default function AIAnalysisPage() {

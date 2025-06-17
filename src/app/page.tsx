@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BookOpen, Users, TrendingUp, Clock, LogOut, Brain, AlertTriangle, Sparkles, Target, Award, Zap } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { GlassCard, GlassButton, GlassNav, GlassContainer, LoadingGlass } from '@/components/ui/GlassCard'
+import { GlassCard, GlassButton, GlassNav, GlassContainer, LoadingGlass } from '@/components/ui'
 
 export default function Home() {
   const router = useRouter()
