@@ -344,33 +344,79 @@ function PracticeContent() {
         .single()
 
       if (existing) {
-        // 更新错误次数
+        // 更新错误次数 - 使用基本字段
+        const updateData: any = {
+          wrong_count: existing.wrong_count + 1,
+          last_wrong_at: new Date().toISOString(),
+          is_mastered: false
+        }
+
+        // 尝试添加扩展字段（如果表结构支持）
+        try {
+          updateData.user_answer = userAnswer
+        } catch (e) {
+          console.log('user_answer字段不存在，跳过')
+        }
+
         await supabase
           .from('wrong_questions')
-          .update({
-            wrong_count: existing.wrong_count + 1,
-            last_wrong_at: new Date().toISOString(),
-            user_answer: userAnswer,
-            is_mastered: false
-          })
+          .update(updateData)
           .eq('id', existing.id)
       } else {
-        // 添加新的错题记录
-        await supabase
-          .from('wrong_questions')
-          .insert({
-            user_id: user.id,
-            question_id: question.id,
+        // 添加新的错题记录 - 先尝试完整字段
+        let insertData: any = {
+          user_id: user.id,
+          question_id: question.id,
+          wrong_count: 1,
+          last_wrong_at: new Date().toISOString(),
+          is_mastered: false
+        }
+
+        // 尝试添加扩展字段
+        try {
+          insertData = {
+            ...insertData,
             user_answer: userAnswer,
             correct_answer: question.answer,
             question_type: question.type || 'multiple_choice',
             subject: question.subject,
             difficulty: question.difficulty,
-            wrong_count: 1,
-            first_wrong_at: new Date().toISOString(),
-            last_wrong_at: new Date().toISOString(),
-            is_mastered: false
-          })
+            first_wrong_at: new Date().toISOString()
+          }
+        } catch (e) {
+          console.log('使用基本字段插入错题记录')
+        }
+
+        const { error: insertError } = await supabase
+          .from('wrong_questions')
+          .insert(insertData)
+
+        if (insertError) {
+          console.error('插入错题失败:', insertError)
+          // 如果完整字段插入失败，尝试只用基本字段
+          if (insertError.message.includes('does not exist')) {
+            console.log('尝试使用基本字段重新插入...')
+            const basicData = {
+              user_id: user.id,
+              question_id: question.id,
+              wrong_count: 1,
+              last_wrong_at: new Date().toISOString(),
+              is_mastered: false
+            }
+
+            const { error: basicError } = await supabase
+              .from('wrong_questions')
+              .insert(basicData)
+
+            if (basicError) {
+              console.error('基本字段插入也失败:', basicError)
+            } else {
+              console.log('✅ 使用基本字段成功插入错题')
+            }
+          }
+        } else {
+          console.log('✅ 成功插入错题记录')
+        }
       }
     } catch (error) {
       console.error('添加错题失败:', error)
