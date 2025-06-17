@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { GlassCard, GlassButton } from '@/components/ui'
+import { GlassCard, GlassButton } from '@/components/ui/index'
 import { CheckCircle, Circle, Clock, Target, BookOpen, Lightbulb, TrendingUp } from 'lucide-react'
 
 interface AIAnalysisResult {
