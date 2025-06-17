@@ -3,13 +3,16 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, RotateCcw, CheckCircle, LogOut, Brain, Target, Clock, Award, Sparkles, ArrowLeft } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer, LoadingGlass } from '@/components/ui'
 
 function PracticeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
   const [user, setUser] = useState<any>(null)
   const [questions, setQuestions] = useState<any[]>([])

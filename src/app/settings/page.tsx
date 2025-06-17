@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
 import { 
   Settings, 
@@ -20,7 +20,10 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 

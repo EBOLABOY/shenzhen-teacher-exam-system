@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
 import { BookOpen, Brain, TrendingUp, ArrowLeft, RefreshCw, Sparkles, Zap, ChevronDown, ChevronUp, Download } from 'lucide-react'
 import { DIFFICULTY_MAPPING, QUESTION_TYPE_MAPPING } from '@/config/ai-prompts'
@@ -63,7 +63,10 @@ interface AIAnalysisResult {
 
 export default function WrongQuestionsPage() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
   const [wrongQuestions, setWrongQuestions] = useState<WrongQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)

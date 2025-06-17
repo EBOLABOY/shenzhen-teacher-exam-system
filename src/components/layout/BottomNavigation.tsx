@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import { useState, useEffect } from 'react'
 import { 
   Home, 
@@ -48,7 +48,10 @@ const bottomNavItems: NavigationItem[] = [
 export default function BottomNavigation() {
   const router = useRouter()
   const pathname = usePathname()
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
   
   const [user, setUser] = useState<any>(null)
   const [isMobile, setIsMobile] = useState(false)
