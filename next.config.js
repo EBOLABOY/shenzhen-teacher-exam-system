@@ -11,6 +11,10 @@ const nextConfig = {
   eslint: {
     // 暂时跳过ESLint检查以加快构建
     ignoreDuringBuilds: true,
+  },
+  webpack: (config) => {
+    config.resolve.extensions = ['.tsx', '.ts', '.js', '.jsx', '.json']
+    return config
   }
 }
 
