@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
 import { CheckCircle, XCircle, Loader2, Sparkles, Mail } from 'lucide-react'
 
-export default function AuthConfirm() {
+function AuthConfirmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -183,5 +183,33 @@ export default function AuthConfirm() {
         </GlassCard>
       </GlassContainer>
     </div>
+  )
+}
+
+export default function AuthConfirm() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center py-12 px-4">
+        <GlassContainer maxWidth="md" className="w-full">
+          <GlassCard className="max-w-md mx-auto text-center">
+            <div className="mb-8">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Sparkles className="w-8 h-8 text-blue-600" />
+                <span className="text-2xl font-bold text-slate-800">深圳教师考编</span>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">
+                正在加载验证页面
+              </h2>
+            </div>
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+              <p className="text-slate-600">请稍候...</p>
+            </div>
+          </GlassCard>
+        </GlassContainer>
+      </div>
+    }>
+      <AuthConfirmContent />
+    </Suspense>
   )
 }
