@@ -30,28 +30,38 @@ export default function MermaidChart({ chart, className = '' }: MermaidChartProp
     })
 
     const renderChart = async () => {
-      if (!chartRef.current || !chart.trim()) return
+      if (!chartRef.current || !chart.trim()) {
+        console.log('MermaidChart: 容器或图表内容为空')
+        return
+      }
+
+      console.log('MermaidChart: 开始渲染图表')
+      console.log('图表内容:', chart)
+      console.log('图表长度:', chart.length)
 
       try {
         // 清空容器
         chartRef.current.innerHTML = ''
-        
+
         // 渲染Mermaid图表
         const { svg } = await mermaid.render(chartId.current, chart)
-        
+        console.log('MermaidChart: 渲染成功，SVG长度:', svg.length)
+
         if (chartRef.current) {
           chartRef.current.innerHTML = svg
-          
+
           // 添加一些样式优化
           const svgElement = chartRef.current.querySelector('svg')
           if (svgElement) {
             svgElement.style.maxWidth = '100%'
             svgElement.style.height = 'auto'
+            console.log('MermaidChart: 样式设置完成')
           }
         }
       } catch (error) {
         console.error('Mermaid渲染失败:', error)
-        
+        console.error('失败的图表内容:', chart)
+
         // 降级到文本显示
         if (chartRef.current) {
           chartRef.current.innerHTML = `

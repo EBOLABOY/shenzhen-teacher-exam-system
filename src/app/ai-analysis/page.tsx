@@ -21,6 +21,9 @@ export default function AIAnalysisPage() {
     // 从sessionStorage获取AI分析的原始内容
     const storedContent = sessionStorage.getItem('aiAnalysisResult')
     if (storedContent) {
+      console.log('AI分析原始内容:', storedContent)
+      console.log('内容长度:', storedContent.length)
+      console.log('是否包含mermaid:', storedContent.includes('```mermaid'))
       setAnalysisContent(storedContent)
     }
     setLoading(false)
@@ -201,6 +204,13 @@ ${analysisContent}
                     const isInline = !className
                     const language = className?.replace('language-', '')
 
+                    console.log('代码块处理:', {
+                      isInline,
+                      className,
+                      language,
+                      content: String(children).substring(0, 50) + '...'
+                    })
+
                     if (isInline) {
                       return (
                         <code className="bg-slate-100 text-purple-700 px-1.5 py-0.5 rounded text-sm font-mono">
@@ -212,6 +222,8 @@ ${analysisContent}
                     // 处理Mermaid图表
                     if (language === 'mermaid') {
                       const mermaidCode = String(children).replace(/\n$/, '')
+                      console.log('检测到Mermaid代码块:', language)
+                      console.log('Mermaid代码内容:', mermaidCode)
                       return <MermaidChart chart={mermaidCode} />
                     }
 
