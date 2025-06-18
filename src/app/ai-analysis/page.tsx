@@ -236,6 +236,24 @@ ${analysisContent}
               >
                 {analysisContent}
               </ReactMarkdown>
+
+              {/* 检查并渲染SVG图表 */}
+              {analysisContent.includes('<svg') && (
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                    可视化图表
+                  </h3>
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200 p-6">
+                    <div
+                      className="flex justify-center"
+                      dangerouslySetInnerHTML={{
+                        __html: analysisContent.match(/<svg[^>]*>[\s\S]*?<\/svg>/gi)?.[0] || ''
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </GlassCard>

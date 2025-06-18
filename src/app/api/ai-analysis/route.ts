@@ -125,6 +125,18 @@ export async function POST(request: NextRequest) {
 
         if (session.knowledge_mind_map) {
           fullAnalysisText += `**🗺️ ${session.knowledge_mind_map.title}**\n\n`
+
+          // 添加文字总结
+          if (session.knowledge_mind_map.summary) {
+            fullAnalysisText += `${session.knowledge_mind_map.summary}\n\n`
+          }
+
+          // 添加SVG图表
+          if (session.knowledge_mind_map.svg_chart) {
+            fullAnalysisText += `${session.knowledge_mind_map.svg_chart}\n\n`
+          }
+
+          // 保留文本版本作为备用
           if (session.knowledge_mind_map.map && session.knowledge_mind_map.map.length > 0) {
             session.knowledge_mind_map.map.forEach(item => {
               fullAnalysisText += `${item}\n`

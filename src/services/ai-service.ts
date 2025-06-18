@@ -47,6 +47,9 @@ interface AIAnalysisResult {
     illustrative_examples: string[]
     knowledge_mind_map: {
       title: string
+      summary?: string
+      svg_chart?: string
+      chart_type?: string
       map: string[]
     }
   }>
