@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('is_mastered', false)
       .order('last_wrong_at', { ascending: false })
-      .limit(50) // 分析最近50道错题
+      .limit(100) // 分析最近100道错题
 
     if (fetchError) {
       console.error('获取错题数据失败:', fetchError)
