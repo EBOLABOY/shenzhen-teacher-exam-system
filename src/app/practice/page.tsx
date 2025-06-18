@@ -30,6 +30,7 @@ function PracticeContent() {
   const [currentTask, setCurrentTask] = useState<any>(null)
   const [isTaskMode, setIsTaskMode] = useState(false)
   const [taskProgress, setTaskProgress] = useState<any[]>([])
+  const [isWrongQuestionMastered, setIsWrongQuestionMastered] = useState(false)
 
   // 从URL参数获取任务信息
   const taskId = searchParams.get('task_id')
@@ -276,6 +277,13 @@ function PracticeContent() {
         await addToWrongQuestions(currentQuestion, selectedAnswer)
       }
 
+      // 如果是错题复习模式且答对了，从错题本中移除该题目
+      if (isCorrect && isTaskMode && currentTask && currentTask.task_type === 'wrong_questions_review') {
+        await removeFromWrongQuestions(currentQuestion.id)
+        // 设置一个标记，在UI中显示特殊提示
+        setIsWrongQuestionMastered(true)
+      }
+
       // 如果是任务模式，记录任务进度
       if (isTaskMode && currentTask) {
         // 检查是否已经回答过这道题
@@ -423,6 +431,34 @@ function PracticeContent() {
     }
   }
 
+  // 从错题本中移除题目（当在错题复习中答对时）
+  const removeFromWrongQuestions = async (questionId: number) => {
+    try {
+      console.log('🗑️ 错题复习答对，从错题本中移除题目:', questionId)
+
+      const { error, count } = await supabase
+        .from('wrong_questions')
+        .delete({ count: 'exact' })
+        .eq('user_id', user?.id)
+        .eq('question_id', questionId)
+
+      if (error) {
+        console.error('❌ 从错题本移除题目失败:', error)
+        // 不显示错误给用户，因为这是后台操作
+      } else {
+        console.log(`✅ 成功从错题本移除题目 (删除了 ${count} 条记录)`)
+
+        // 可选：显示成功提示（但不要太频繁打扰用户）
+        if (count && count > 0) {
+          console.log('🎉 恭喜！这道题已从错题本中移除，说明您已经掌握了！')
+        }
+      }
+    } catch (error) {
+      console.error('❌ 移除错题异常:', error)
+      // 静默处理错误，不影响用户答题体验
+    }
+  }
+
   const handleNextQuestion = () => {
     if (isLastQuestion) {
       if (isTaskMode && currentTask) {
@@ -440,6 +476,7 @@ function PracticeContent() {
       setSelectedAnswer('')
       setSelectedAnswers([])
       setShowExplanation(false)
+      setIsWrongQuestionMastered(false) // 重置错题掌握状态
       setStartTime(new Date()) // 重置计时
     }
   }
@@ -755,15 +792,32 @@ function PracticeContent() {
 
             {/* 答案解析 */}
             {showExplanation && (
-              <GlassCard variant="light" className="border-l-4 border-green-500 bg-gradient-to-r from-green-50/50 to-blue-50/50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
-                    <CheckCircle className="h-5 w-5 text-white" />
+              <>
+                <GlassCard variant="light" className="border-l-4 border-green-500 bg-gradient-to-r from-green-50/50 to-blue-50/50">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                      <CheckCircle className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="font-bold text-slate-800 text-lg">正确答案: {currentQuestion.answer}</span>
                   </div>
-                  <span className="font-bold text-slate-800 text-lg">正确答案: {currentQuestion.answer}</span>
-                </div>
-                <p className="text-slate-700 leading-relaxed font-medium">{currentQuestion.explanation}</p>
-              </GlassCard>
+                  <p className="text-slate-700 leading-relaxed font-medium">{currentQuestion.explanation}</p>
+                </GlassCard>
+
+                {/* 错题掌握提示 */}
+                {isWrongQuestionMastered && (
+                  <GlassCard variant="light" className="border-l-4 border-purple-500 bg-gradient-to-r from-purple-50/50 to-pink-50/50 mt-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-lg">🎉</span>
+                      </div>
+                      <span className="font-bold text-purple-800 text-lg">恭喜！错题已掌握</span>
+                    </div>
+                    <p className="text-purple-700 leading-relaxed font-medium">
+                      您答对了这道错题，说明已经掌握了相关知识点。这道题已从您的错题本中移除！
+                    </p>
+                  </GlassCard>
+                )}
+              </>
             )}
           </div>
         </GlassCard>
