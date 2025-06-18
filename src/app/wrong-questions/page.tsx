@@ -170,17 +170,27 @@ export default function WrongQuestionsPage() {
 
       console.log('响应状态:', response.status, response.statusText)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('API错误响应:', errorData)
-        throw new Error(errorData.error || `AI分析请求失败: ${response.status}`)
+      let data
+      try {
+        data = await response.json()
+        console.log('AI分析响应:', data)
+      } catch (parseError) {
+        console.error('响应解析失败:', parseError)
+        throw new Error('服务器响应格式错误，请稍后重试')
       }
 
-      const data = await response.json()
-      console.log('AI分析响应:', data)
+      if (!response.ok) {
+        console.error('API错误响应:', data)
+        throw new Error(data.error || `AI分析请求失败: ${response.status}`)
+      }
 
       if (!data.analysis) {
         throw new Error('AI分析响应格式异常')
+      }
+
+      // 检查是否是备用响应
+      if (data.analysis.fallback) {
+        console.log('⚠️ 使用备用分析结果')
       }
 
       // 显示分析完成时间

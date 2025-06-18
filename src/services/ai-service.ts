@@ -322,35 +322,95 @@ ${wq.questions?.explanation ? `**解析**: ${wq.questions.explanation}` : ''}
     console.log('🔍 响应前200字符:', response.substring(0, 200))
 
     try {
-      // 尝试提取JSON部分
-      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) ||
-                       response.match(/\{[\s\S]*\}/)
+      // 清理响应内容
+      let cleanedResponse = response.trim()
 
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[1] || jsonMatch[0]
-        console.log('🔍 提取的JSON字符串长度:', jsonStr.length)
-        console.log('🔍 JSON前200字符:', jsonStr.substring(0, 200))
+      // 移除可能的前缀文本（如"An error occurred"等）
+      if (cleanedResponse.includes('{')) {
+        const firstBraceIndex = cleanedResponse.indexOf('{')
+        cleanedResponse = cleanedResponse.substring(firstBraceIndex)
+      }
 
-        const parsed = JSON.parse(jsonStr)
-        console.log('🔍 JSON解析成功，字段检查:')
-        console.log('  - analysis_summary:', !!parsed.analysis_summary)
-        console.log('  - weakness_diagnostic:', !!parsed.weakness_diagnostic)
-        console.log('  - targeted_tutoring_sessions:', !!parsed.targeted_tutoring_sessions)
-        console.log('  - motivational_message:', !!parsed.motivational_message)
+      // 移除可能的后缀文本
+      if (cleanedResponse.includes('}')) {
+        const lastBraceIndex = cleanedResponse.lastIndexOf('}')
+        cleanedResponse = cleanedResponse.substring(0, lastBraceIndex + 1)
+      }
 
-        // 验证必要字段 - 更新为与系统提示词一致的字段
-        if (!parsed.analysis_summary || !parsed.weakness_diagnostic || !parsed.targeted_tutoring_sessions) {
-          console.warn('⚠️ AI响应字段不完整，但尝试继续处理:', Object.keys(parsed))
-          // 不抛出错误，而是尝试处理不完整的响应
+      // 尝试多种JSON提取方式
+      let jsonStr = ''
+
+      // 方式1: 提取```json代码块
+      const jsonBlockMatch = cleanedResponse.match(/```json\s*([\s\S]*?)\s*```/)
+      if (jsonBlockMatch) {
+        jsonStr = jsonBlockMatch[1].trim()
+      }
+      // 方式2: 提取完整的JSON对象
+      else {
+        const jsonObjectMatch = cleanedResponse.match(/\{[\s\S]*\}/)
+        if (jsonObjectMatch) {
+          jsonStr = jsonObjectMatch[0].trim()
         }
+      }
 
-        console.log('✅ 返回解析后的AI响应')
-        return parsed
-      } else {
-        console.log('⚠️ 未找到JSON格式，使用备用响应')
-        // 如果没有找到JSON格式，创建一个基本的响应结构
+      if (!jsonStr) {
+        console.log('⚠️ 未找到有效的JSON内容')
         return this.createFallbackResponse(response)
       }
+
+      console.log('🔍 提取的JSON字符串长度:', jsonStr.length)
+      console.log('🔍 JSON前200字符:', jsonStr.substring(0, 200))
+      console.log('🔍 JSON后200字符:', jsonStr.substring(Math.max(0, jsonStr.length - 200)))
+
+      // 尝试解析JSON
+      let parsed: any
+      try {
+        parsed = JSON.parse(jsonStr)
+      } catch (parseError) {
+        console.error('❌ JSON解析失败，尝试修复:', parseError)
+
+        // 尝试修复常见的JSON格式问题
+        let fixedJsonStr = jsonStr
+          .replace(/,\s*}/g, '}')  // 移除尾随逗号
+          .replace(/,\s*]/g, ']')  // 移除数组尾随逗号
+          .replace(/'/g, '"')      // 替换单引号为双引号
+
+        try {
+          parsed = JSON.parse(fixedJsonStr)
+          console.log('✅ JSON修复成功')
+        } catch (fixError) {
+          console.error('❌ JSON修复失败:', fixError)
+          return this.createFallbackResponse(response)
+        }
+      }
+
+      console.log('🔍 JSON解析成功，字段检查:')
+      console.log('  - analysis_summary:', !!parsed.analysis_summary)
+      console.log('  - weakness_diagnostic:', !!parsed.weakness_diagnostic)
+      console.log('  - targeted_tutoring_sessions:', !!parsed.targeted_tutoring_sessions)
+      console.log('  - motivational_message:', !!parsed.motivational_message)
+
+      // 验证必要字段
+      if (!parsed.analysis_summary || !parsed.weakness_diagnostic || !parsed.targeted_tutoring_sessions) {
+        console.warn('⚠️ AI响应字段不完整，但尝试继续处理:', Object.keys(parsed))
+        // 补充缺失字段
+        if (!parsed.analysis_summary) {
+          parsed.analysis_summary = '基于您的错题进行了分析，发现了一些需要改进的知识点。'
+        }
+        if (!parsed.weakness_diagnostic) {
+          parsed.weakness_diagnostic = {
+            subject: '综合分析',
+            chapter: '基础概念',
+            knowledge_points: ['需要进一步分析']
+          }
+        }
+        if (!parsed.targeted_tutoring_sessions) {
+          parsed.targeted_tutoring_sessions = []
+        }
+      }
+
+      console.log('✅ 返回解析后的AI响应')
+      return parsed
 
     } catch (error) {
       console.error('❌ 解析AI响应失败:', error)
