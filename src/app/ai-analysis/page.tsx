@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeRaw from 'rehype-raw'
-import mermaid from 'mermaid'
+
 import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
+import MermaidChart from '@/components/MermaidChart'
 import { ArrowLeft, Brain, Download, Share2, BookOpen, Sparkles } from 'lucide-react'
 import 'highlight.js/styles/github.css'
 
@@ -23,24 +24,7 @@ export default function AIAnalysisPage() {
       setAnalysisContent(storedContent)
     }
     setLoading(false)
-
-    // 初始化Mermaid
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      securityLevel: 'loose',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    })
   }, [])
-
-  // 当内容更新时重新渲染Mermaid图表
-  useEffect(() => {
-    if (analysisContent && analysisContent.includes('```mermaid')) {
-      setTimeout(() => {
-        mermaid.run()
-      }, 100)
-    }
-  }, [analysisContent])
 
   const exportAnalysis = () => {
     if (!analysisContent) return
@@ -228,14 +212,7 @@ ${analysisContent}
                     // 处理Mermaid图表
                     if (language === 'mermaid') {
                       const mermaidCode = String(children).replace(/\n$/, '')
-                      return (
-                        <div className="my-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200">
-                          <div
-                            className="mermaid flex justify-center"
-                            dangerouslySetInnerHTML={{ __html: mermaidCode }}
-                          />
-                        </div>
-                      )
+                      return <MermaidChart chart={mermaidCode} />
                     }
 
                     return (
