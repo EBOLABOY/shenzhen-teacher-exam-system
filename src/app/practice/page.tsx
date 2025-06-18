@@ -25,6 +25,7 @@ function PracticeContent() {
   const [loading, setLoading] = useState(true)
   const [startTime, setStartTime] = useState<Date | null>(null)
   const [totalQuestions, setTotalQuestions] = useState(0)
+  const [completedQuestions, setCompletedQuestions] = useState(0)
 
   // 任务相关状态
   const [currentTask, setCurrentTask] = useState<any>(null)
@@ -82,6 +83,9 @@ function PracticeContent() {
       }
       setUser(user)
 
+      // 获取用户已完成题目数量
+      await fetchCompletedQuestions(user)
+
       // 检查是否是任务模式
       if (taskId) {
         setIsTaskMode(true)
@@ -107,6 +111,22 @@ function PracticeContent() {
       }
     } catch (error) {
       console.error('获取题库总数失败:', error)
+    }
+  }
+
+  const fetchCompletedQuestions = async (currentUser: any) => {
+    try {
+      const { count, error } = await supabase
+        .from('user_answers')
+        .select('question_id', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id)
+
+      if (!error && count !== null) {
+        setCompletedQuestions(count)
+        console.log(`用户已完成 ${count} 道题目`)
+      }
+    } catch (error) {
+      console.error('获取已完成题目数量失败:', error)
     }
   }
 
@@ -271,6 +291,9 @@ function PracticeContent() {
           is_correct: isCorrect,
           time_spent: startTime ? Math.round((Date.now() - startTime.getTime()) / 1000) : 0
         })
+
+      // 更新已完成题目数量
+      setCompletedQuestions(prev => prev + 1)
 
       // 如果答错了，添加到错题本（无论是否为任务模式）
       if (!isCorrect) {
@@ -512,6 +535,9 @@ function PracticeContent() {
           .delete()
           .eq('user_id', user.id)
 
+        // 重置已完成题目数量
+        setCompletedQuestions(0)
+
         alert('答题记录已清除，现在可以重新做所有题目了！')
 
         // 重新获取题目
@@ -624,6 +650,10 @@ function PracticeContent() {
                       <span className="text-sm text-blue-600 flex items-center gap-1">
                         <Target className="w-4 h-4" />
                         题库总数：{totalQuestions} 道题
+                      </span>
+                      <span className="text-sm text-green-600 flex items-center gap-1">
+                        <CheckCircle className="w-4 h-4" />
+                        已完成：{completedQuestions} 道题
                       </span>
                       <span className="text-sm text-purple-600 flex items-center gap-1">
                         <Award className="w-4 h-4" />
