@@ -233,11 +233,25 @@ ${analysisContent}
                       </code>
                     )
                   },
-                  pre: ({ children }) => (
-                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto my-4">
-                      {children}
-                    </pre>
-                  ),
+                  pre: ({ children }) => {
+                    console.log('Pre标签处理:', children)
+
+                    // 检查是否包含Mermaid代码块
+                    const codeElement = React.Children.toArray(children).find(
+                      (child: any) => child?.props?.className?.includes('language-mermaid')
+                    )
+
+                    if (codeElement) {
+                      console.log('Pre中发现Mermaid代码块，直接返回children')
+                      return <>{children}</>
+                    }
+
+                    return (
+                      <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto my-4">
+                        {children}
+                      </pre>
+                    )
+                  },
                   table: ({ children }) => (
                     <div className="overflow-x-auto my-4">
                       <table className="min-w-full border border-slate-200 rounded-lg">

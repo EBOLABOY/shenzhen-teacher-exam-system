@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
 
 interface MermaidChartProps {
@@ -11,8 +11,18 @@ interface MermaidChartProps {
 export default function MermaidChart({ chart, className = '' }: MermaidChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartId = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    // 确保在客户端环境下初始化Mermaid
+    if (typeof window === 'undefined' || !isMounted) return
+
+    console.log('MermaidChart: 初始化Mermaid')
+
     // 初始化Mermaid（如果还没有初始化）
     mermaid.initialize({
       startOnLoad: false,
@@ -30,8 +40,8 @@ export default function MermaidChart({ chart, className = '' }: MermaidChartProp
     })
 
     const renderChart = async () => {
-      if (!chartRef.current || !chart.trim()) {
-        console.log('MermaidChart: 容器或图表内容为空')
+      if (!chartRef.current || !chart.trim() || !isMounted) {
+        console.log('MermaidChart: 容器或图表内容为空，或组件未挂载')
         return
       }
 
@@ -76,13 +86,24 @@ export default function MermaidChart({ chart, className = '' }: MermaidChartProp
 
     // 延迟渲染以确保DOM完全加载
     const timer = setTimeout(renderChart, 100)
-    
+
     return () => clearTimeout(timer)
-  }, [chart])
+  }, [chart, isMounted])
+
+  // 服务端渲染时显示占位符
+  if (!isMounted) {
+    return (
+      <div className={`my-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200 ${className}`}>
+        <div className="flex justify-center min-h-[200px] items-center">
+          <div className="text-gray-500">正在加载图表组件...</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`my-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200 ${className}`}>
-      <div 
+      <div
         ref={chartRef}
         className="flex justify-center min-h-[200px] items-center"
       >
