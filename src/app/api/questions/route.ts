@@ -59,9 +59,9 @@ export async function GET(request: NextRequest) {
       query = query.eq('difficulty', difficulty)
     }
 
-    // 如果需要随机排序，先获取更多数据再随机选择
+    // 如果需要随机排序，适度获取更多数据用于随机选择
     if (random) {
-      query = query.limit(Math.max(limit * 5, 100)) // 获取更多数据用于随机选择
+      query = query.limit(Math.max(limit + 5, 25)) // 只获取limit+5道题目，节省资源
     } else {
       query = query.limit(limit)
     }

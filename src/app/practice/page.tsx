@@ -5,10 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, RotateCcw, CheckCircle, LogOut, Brain, Target, Clock, Award, Sparkles, ArrowLeft } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer, LoadingGlass } from '@/components/ui'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 
 function PracticeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const isMobile = useIsMobile()
   const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -224,15 +226,15 @@ function PracticeContent() {
         query = query.not('id', 'in', `(${answeredQuestionIds.join(',')})`)
       }
 
-      // 3. 使用PostgreSQL的RANDOM()函数进行真正的随机排序
+      // 3. 只获取25道题目，给5道题的容错空间
       const { data: allQuestions, error } = await query
         .order('id', { ascending: false }) // 先按ID排序
-        .limit(100) // 获取更多题目用于随机选择
+        .limit(25) // 只获取25道题目，节省资源
 
       if (error) throw error
 
       if (allQuestions && allQuestions.length > 0) {
-        // 4. 从获取的题目中随机选择20道
+        // 4. 从获取的25道题目中随机选择20道
         const shuffled = allQuestions
           .sort(() => Math.random() - 0.5) // 更好的随机排序
           .slice(0, Math.min(20, allQuestions.length))
@@ -550,7 +552,7 @@ function PracticeContent() {
   }
 
   const getOptionClass = (option: string) => {
-    const baseClass = "w-full text-left p-5 rounded-xl border-2 transition-all duration-300 flex items-center group hover:scale-[1.02] hover:shadow-lg"
+    const baseClass = `w-full text-left rounded-xl border-2 transition-all duration-300 flex items-center group hover:scale-[1.02] hover:shadow-lg ${isMobile ? 'p-3' : 'p-5'}`
     if (!showExplanation) {
       const isSelected = questionType === 'multipleChoice'
         ? selectedAnswers.includes(option)
@@ -616,47 +618,49 @@ function PracticeContent() {
   }
 
   return (
-    <div className="min-h-screen">
-      <GlassContainer maxWidth="2xl" className="py-8">
+    <div className={`h-screen overflow-hidden ${isMobile ? 'pt-12' : 'pt-16'}`}>
+      <GlassContainer maxWidth="2xl" className={`h-full overflow-y-auto ${isMobile ? 'py-1 pb-3' : 'py-4 pb-6'}`}>
         {/* 用户信息栏 */}
-        <GlassCard className="mb-8">
+        <GlassCard className={isMobile ? 'mb-2' : 'mb-8'}>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                <Brain className="w-6 h-6 text-white" />
+              <div className={`bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center ${isMobile ? 'w-8 h-8' : 'w-12 h-12'}`}>
+                <Brain className={`text-white ${isMobile ? 'w-4 h-4' : 'w-6 h-6'}`} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                  <Sparkles className="w-6 h-6 text-blue-600" />
+                <h1 className={`font-bold text-slate-800 flex items-center gap-2 ${isMobile ? 'text-base' : 'text-2xl'}`}>
+                  <Sparkles className={`text-blue-600 ${isMobile ? 'w-4 h-4' : 'w-6 h-6'}`} />
                   {isTaskMode ? currentTask?.title || '任务练习' : '智能刷题练习'}
                 </h1>
-                <p className="text-slate-600">
-                  {isTaskMode ? currentTask?.description : `欢迎，${user?.email}`}
-                </p>
-                <div className="flex items-center gap-4 mt-1">
+                {!isMobile && (
+                  <p className="text-slate-600">
+                    {isTaskMode ? currentTask?.description : `欢迎，${user?.email}`}
+                  </p>
+                )}
+                <div className={`flex items-center gap-4 ${isMobile ? 'mt-0.5' : 'mt-1'}`}>
                   {isTaskMode ? (
                     <>
-                      <span className="text-sm text-blue-600 flex items-center gap-1">
-                        <Target className="w-4 h-4" />
+                      <span className={`text-blue-600 flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <Target className={isMobile ? 'w-3 h-3' : 'w-4 h-4'} />
                         任务进度：{currentTask?.completed_questions || 0}/{currentTask?.total_questions || 0}
                       </span>
-                      <span className="text-sm text-green-600 flex items-center gap-1">
-                        <Award className="w-4 h-4" />
+                      <span className={`text-green-600 flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <Award className={isMobile ? 'w-3 h-3' : 'w-4 h-4'} />
                         正确率：{currentTask?.completed_questions > 0 ? Math.round((currentTask?.correct_answers / currentTask?.completed_questions) * 100) : 0}%
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="text-sm text-blue-600 flex items-center gap-1">
-                        <Target className="w-4 h-4" />
+                      <span className={`text-blue-600 flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <Target className={isMobile ? 'w-3 h-3' : 'w-4 h-4'} />
                         题库总数：{totalQuestions} 道题
                       </span>
-                      <span className="text-sm text-green-600 flex items-center gap-1">
-                        <CheckCircle className="w-4 h-4" />
+                      <span className={`text-green-600 flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <CheckCircle className={isMobile ? 'w-3 h-3' : 'w-4 h-4'} />
                         已完成：{completedQuestions} 道题
                       </span>
-                      <span className="text-sm text-purple-600 flex items-center gap-1">
-                        <Award className="w-4 h-4" />
+                      <span className={`text-purple-600 flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <Award className={isMobile ? 'w-3 h-3' : 'w-4 h-4'} />
                         本次练习：{questions.length} 道题
                       </span>
                     </>
@@ -679,8 +683,8 @@ function PracticeContent() {
         </GlassCard>
 
         {/* 进度条 */}
-        <GlassCard variant="light" className="mb-8">
-          <div className="flex justify-between items-center mb-4">
+        <GlassCard variant="light" className={isMobile ? 'mb-2' : 'mb-8'}>
+          <div className={`flex justify-between items-center ${isMobile ? 'mb-2' : 'mb-4'}`}>
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-blue-600" />
               <span className="font-medium text-slate-800">
@@ -703,7 +707,7 @@ function PracticeContent() {
             </div>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full"></div>
           </div>
-          <div className="flex justify-between text-xs text-slate-500 mt-2">
+          <div className={`flex justify-between text-xs text-slate-500 ${isMobile ? 'mt-1' : 'mt-2'}`}>
             <span>开始</span>
             <span>{Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}% 完成</span>
             <span>结束</span>
@@ -711,15 +715,15 @@ function PracticeContent() {
         </GlassCard>
 
         {/* 题目卡片 */}
-        <GlassCard className="mb-8 relative overflow-hidden">
+        <GlassCard className={`relative overflow-hidden ${isMobile ? 'mb-2' : 'mb-8'}`}>
           {/* 背景装饰 */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full -translate-y-16 translate-x-16"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-green-500/10 to-blue-500/10 rounded-full translate-y-12 -translate-x-12"></div>
 
           <div className="relative z-10">
-            <div className="mb-6">
+            <div className={isMobile ? 'mb-3' : 'mb-6'}>
               {/* 题目标签 - 优化布局，让题型提示与科目难度并排 */}
-              <div className="flex items-center gap-3 mb-6 flex-wrap">
+              <div className={`flex items-center gap-3 flex-wrap ${isMobile ? 'mb-3' : 'mb-6'}`}>
                 <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium px-3 py-1.5 rounded-full shadow-sm">
                   {currentQuestion.subject}
                 </span>
@@ -746,13 +750,13 @@ function PracticeContent() {
                   </span>
                 )}
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-6 leading-relaxed">
+              <h2 className={`font-bold text-slate-800 leading-relaxed ${isMobile ? 'text-lg mb-3' : 'text-2xl mb-6'}`}>
                 {currentQuestion.question}
               </h2>
             </div>
 
             {/* 选项 */}
-            <div className="space-y-4 mb-8">
+            <div className={`${isMobile ? 'space-y-2 mb-4' : 'space-y-4 mb-8'}`}>
               {(() => {
                 // 处理缺少选项的判断题
                 let options = currentQuestion.options;
@@ -853,60 +857,74 @@ function PracticeContent() {
         </GlassCard>
 
         {/* 导航按钮 */}
-        <div className="flex justify-between items-center">
-          <GlassButton
-            onClick={handlePrevQuestion}
-            disabled={isFirstQuestion}
-            variant="glass"
-            size="md"
-            className="text-slate-600 hover:text-slate-800"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            上一题
-          </GlassButton>
-
-          <div className="flex gap-2">
+        {isMobile ? (
+          // 移动端简化布局 - 只保留核心导航按钮
+          <div className="flex gap-3">
             <GlassButton
-              onClick={handleReset}
-              variant="secondary"
-              size="md"
+              onClick={handlePrevQuestion}
+              disabled={isFirstQuestion}
+              variant="glass"
+              size="lg"
+              className="flex-1 text-slate-600 hover:text-slate-800"
             >
-              <RotateCcw className="h-4 w-4" />
-              重新开始
+              <ChevronLeft className="h-5 w-5" />
+              上一题
             </GlassButton>
 
-            {!isTaskMode && (
-              <GlassButton
-                onClick={handleResetAllProgress}
-                variant="glass"
-                size="md"
-                className="text-red-600 hover:text-red-800 border-red-200 hover:border-red-300"
-              >
-                <RotateCcw className="h-4 w-4" />
-                清除进度
-              </GlassButton>
-            )}
+            <GlassButton
+              onClick={handleNextQuestion}
+              disabled={!showExplanation}
+              variant="primary"
+              size="lg"
+              className="flex-1"
+            >
+              {isLastQuestion ? (
+                <>
+                  <Award className="h-5 w-5" />
+                  完成练习
+                </>
+              ) : (
+                <>
+                  下一题
+                  <ChevronRight className="h-5 w-5" />
+                </>
+              )}
+            </GlassButton>
           </div>
+        ) : (
+          // 桌面端简化布局
+          <div className="flex justify-between items-center">
+            <GlassButton
+              onClick={handlePrevQuestion}
+              disabled={isFirstQuestion}
+              variant="glass"
+              size="md"
+              className="text-slate-600 hover:text-slate-800"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              上一题
+            </GlassButton>
 
-          <GlassButton
-            onClick={handleNextQuestion}
-            disabled={!showExplanation}
-            variant="primary"
-            size="md"
-          >
-            {isLastQuestion ? (
-              <>
-                <Award className="h-4 w-4" />
-                完成练习
-              </>
-            ) : (
-              <>
-                下一题
-                <ChevronRight className="h-4 w-4" />
-              </>
-            )}
-          </GlassButton>
-        </div>
+            <GlassButton
+              onClick={handleNextQuestion}
+              disabled={!showExplanation}
+              variant="primary"
+              size="md"
+            >
+              {isLastQuestion ? (
+                <>
+                  <Award className="h-4 w-4" />
+                  完成练习
+                </>
+              ) : (
+                <>
+                  下一题
+                  <ChevronRight className="h-4 w-4" />
+                </>
+              )}
+            </GlassButton>
+          </div>
+        )}
       </GlassContainer>
     </div>
   )
