@@ -29,6 +29,10 @@ export default function MermaidChart({ chart, className = '' }: MermaidChartProp
       theme: 'default',
       securityLevel: 'loose',
       fontFamily: 'system-ui, -apple-system, sans-serif',
+      mindmap: {
+        padding: 10,
+        maxNodeSizeRatio: 0.25
+      },
       themeVariables: {
         primaryColor: '#3b82f6',
         primaryTextColor: '#1f2937',

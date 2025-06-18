@@ -153,18 +153,7 @@ ${analysisContent}
 
           <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <div className="prose prose-slate max-w-none prose-headings:text-slate-800 prose-h1:text-2xl prose-h1:font-bold prose-h1:mb-4 prose-h1:mt-6 prose-h2:text-xl prose-h2:font-semibold prose-h2:mb-3 prose-h2:mt-5 prose-h3:text-lg prose-h3:font-medium prose-h3:mb-2 prose-h3:mt-4 prose-p:text-slate-700 prose-p:leading-relaxed prose-strong:font-semibold prose-strong:text-slate-800 prose-ul:my-4 prose-li:my-1 prose-ol:my-4">
-              {/* 测试Mermaid渲染 */}
-              <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">🧪 Mermaid测试</h3>
-                <MermaidChart chart={`mindmap
-  root((测试))
-    (分支1)
-      (子项1)
-      (子项2)
-    (分支2)
-      (子项3)
-      (子项4)`} />
-              </div>
+
 
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -221,7 +210,8 @@ ${analysisContent}
                       isInline,
                       className,
                       language,
-                      content: String(children).substring(0, 50) + '...'
+                      content: String(children).substring(0, 100) + '...',
+                      fullContent: String(children)
                     })
 
                     if (isInline) {
