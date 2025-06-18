@@ -45,7 +45,7 @@ export default function Login() {
         if (profile?.is_admin) {
           router.push('/admin')
         } else {
-          router.push('/practice')
+          router.push('/')
         }
       }
     } catch (error: any) {

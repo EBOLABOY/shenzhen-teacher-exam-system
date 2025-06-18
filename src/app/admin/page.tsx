@@ -168,15 +168,15 @@ export default function AdminPage() {
         .single()
 
       if (profileError || !profile?.is_admin) {
-        // 不是管理员，重定向到刷题页面
-        router.push('/practice')
+        // 不是管理员，重定向到主页
+        router.push('/')
         return
       }
 
       setIsAdmin(true)
     } catch (error) {
       console.error('权限检查失败:', error)
-      router.push('/practice')
+      router.push('/')
     } finally {
       setAuthLoading(false)
     }
@@ -204,11 +204,11 @@ export default function AdminPage() {
           <h3 className="text-xl font-bold text-red-600 mb-2">访问被拒绝</h3>
           <p className="text-slate-500 mb-6">您没有权限访问管理后台</p>
           <GlassButton
-            onClick={() => router.push('/practice')}
+            onClick={() => router.push('/')}
             variant="primary"
             size="md"
           >
-            前往刷题
+            返回主页
           </GlassButton>
         </GlassCard>
       </div>

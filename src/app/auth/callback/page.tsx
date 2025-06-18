@@ -57,7 +57,7 @@ function AuthCallbackContent() {
               if (profile?.is_admin) {
                 router.push('/admin')
               } else {
-                router.push('/practice')
+                router.push('/')
               }
             }, 2000)
           }
