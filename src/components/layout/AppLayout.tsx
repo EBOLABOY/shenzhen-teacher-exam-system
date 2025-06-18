@@ -13,7 +13,10 @@ const noNavPages = [
   '/login',
   '/register',
   '/forgot-password',
-  '/reset-password'
+  '/reset-password',
+  '/auth/callback',
+  '/auth/confirm',
+  '/auth/reset-password'
 ]
 
 export default function AppLayout({ children }: AppLayoutProps) {

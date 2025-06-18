@@ -301,7 +301,13 @@ export default function WrongQuestionsPage() {
 
       if (taskError) {
         console.error('创建任务失败:', taskError)
-        alert('创建复习任务失败，请重试')
+
+        // 检查是否是表不存在的错误
+        if (taskError.code === '42P01') {
+          alert('练习任务功能尚未初始化，请联系管理员创建相关数据表')
+        } else {
+          alert(`创建复习任务失败：${taskError.message || '未知错误'}`)
+        }
         return
       }
 
