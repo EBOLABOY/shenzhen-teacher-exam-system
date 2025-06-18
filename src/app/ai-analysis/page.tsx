@@ -204,7 +204,8 @@ ${analysisContent}
                   ),
                   code: ({ children, className }) => {
                     const isInline = !className
-                    const language = className?.replace('language-', '')
+                    // 处理highlight.js添加的hljs前缀
+                    const language = className?.replace(/^hljs\s+/, '').replace('language-', '')
 
                     console.log('代码块处理:', {
                       isInline,
@@ -222,8 +223,8 @@ ${analysisContent}
                       )
                     }
 
-                    // 处理Mermaid图表
-                    if (language === 'mermaid') {
+                    // 处理Mermaid图表 - 支持多种可能的语言标识
+                    if (language === 'mermaid' || className?.includes('language-mermaid')) {
                       const mermaidCode = String(children).replace(/\n$/, '')
                       console.log('检测到Mermaid代码块:', language)
                       console.log('Mermaid代码内容:', mermaidCode)
