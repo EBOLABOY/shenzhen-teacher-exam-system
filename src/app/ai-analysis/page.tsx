@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+import rehypeRaw from 'rehype-raw'
 import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
 import { ArrowLeft, Brain, Download, Share2, BookOpen, Sparkles } from 'lucide-react'
+import 'highlight.js/styles/github.css'
 
 export default function AIAnalysisPage() {
   const router = useRouter()
@@ -142,25 +147,95 @@ ${analysisContent}
           </div>
 
           <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-            <div className="prose prose-slate max-w-none">
-              <div
-                className="text-slate-700 leading-relaxed"
-                style={{
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  fontSize: '16px',
-                  lineHeight: '1.7'
+            <div className="prose prose-slate max-w-none prose-headings:text-slate-800 prose-h1:text-2xl prose-h1:font-bold prose-h1:mb-4 prose-h1:mt-6 prose-h2:text-xl prose-h2:font-semibold prose-h2:mb-3 prose-h2:mt-5 prose-h3:text-lg prose-h3:font-medium prose-h3:mb-2 prose-h3:mt-4 prose-p:text-slate-700 prose-p:leading-relaxed prose-strong:font-semibold prose-strong:text-slate-800 prose-ul:my-4 prose-li:my-1 prose-ol:my-4">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeHighlight, rehypeRaw]}
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className="text-2xl font-bold text-slate-800 mb-4 mt-6 flex items-center gap-2">
+                      <Sparkles className="w-6 h-6 text-purple-600" />
+                      {children}
+                    </h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-xl font-semibold text-slate-700 mb-3 mt-5 flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-lg font-medium text-slate-600 mb-2 mt-4 flex items-center gap-2">
+                      <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-full"></div>
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="text-slate-700 leading-relaxed mb-4">{children}</p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="space-y-2 my-4">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="space-y-2 my-4">{children}</ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="flex items-start gap-2 text-slate-700">
+                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <span>{children}</span>
+                    </li>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-slate-800 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                      {children}
+                    </strong>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-4 border-purple-500 pl-4 py-2 my-4 bg-purple-50/50 rounded-r-lg">
+                      {children}
+                    </blockquote>
+                  ),
+                  code: ({ children, className }) => {
+                    const isInline = !className
+                    if (isInline) {
+                      return (
+                        <code className="bg-slate-100 text-purple-700 px-1.5 py-0.5 rounded text-sm font-mono">
+                          {children}
+                        </code>
+                      )
+                    }
+                    return (
+                      <code className={className}>
+                        {children}
+                      </code>
+                    )
+                  },
+                  pre: ({ children }) => (
+                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto my-4">
+                      {children}
+                    </pre>
+                  ),
+                  table: ({ children }) => (
+                    <div className="overflow-x-auto my-4">
+                      <table className="min-w-full border border-slate-200 rounded-lg">
+                        {children}
+                      </table>
+                    </div>
+                  ),
+                  th: ({ children }) => (
+                    <th className="bg-slate-50 border border-slate-200 px-4 py-2 text-left font-semibold text-slate-700">
+                      {children}
+                    </th>
+                  ),
+                  td: ({ children }) => (
+                    <td className="border border-slate-200 px-4 py-2 text-slate-700">
+                      {children}
+                    </td>
+                  ),
                 }}
-                dangerouslySetInnerHTML={{
-                  __html: analysisContent
-                    .replace(/\n/g, '<br>')
-                    .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-slate-800 mb-4 mt-6">$1</h1>')
-                    .replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold text-slate-700 mb-3 mt-5">$1</h2>')
-                    .replace(/^### (.+)$/gm, '<h3 class="text-lg font-medium text-slate-600 mb-2 mt-4">$1</h3>')
-                    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-slate-800">$1</strong>')
-                    .replace(/^- (.+)$/gm, '<div class="ml-4 mb-1">• $1</div>')
-                    .replace(/^(\d+)\. (.+)$/gm, '<div class="ml-4 mb-1">$1. $2</div>')
-                }}
-              />
+              >
+                {analysisContent}
+              </ReactMarkdown>
             </div>
           </div>
         </GlassCard>

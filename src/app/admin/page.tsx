@@ -1,22 +1,27 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Upload, Database, FileText, BarChart3, Key, Users, Plus, Copy, Check, Sparkles, Settings } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Upload, Database, FileText, BarChart3, Key, Users, Plus, Copy, Check, Sparkles, Settings, Shield, AlertTriangle } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
 import ImportTool from './import-tool'
 
 export default function AdminPage() {
+  const router = useRouter()
   const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
   const [stats, setStats] = useState<any>(null)
   const [inviteCodes, setInviteCodes] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loading, setLoading] = useState(false)
   const [copiedCode, setCopiedCode] = useState('')
+  const [authLoading, setAuthLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
 
 
@@ -130,12 +135,85 @@ export default function AdminPage() {
     }
   }
 
+  // 检查用户权限
+  useEffect(() => {
+    checkAdminAccess()
+  }, [])
+
   // 页面加载时获取数据
   useEffect(() => {
-    fetchStats()
-    fetchInviteCodes()
-    fetchUsers()
-  }, [])
+    if (isAdmin) {
+      fetchStats()
+      fetchInviteCodes()
+      fetchUsers()
+    }
+  }, [isAdmin])
+
+  const checkAdminAccess = async () => {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        router.push('/login')
+        return
+      }
+
+      setUser(user)
+
+      // 检查用户是否为管理员
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('is_admin')
+        .eq('user_id', user.id)
+        .single()
+
+      if (profileError || !profile?.is_admin) {
+        // 不是管理员，重定向到首页
+        router.push('/')
+        return
+      }
+
+      setIsAdmin(true)
+    } catch (error) {
+      console.error('权限检查失败:', error)
+      router.push('/')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  // 权限验证加载中
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <GlassCard className="text-center p-8">
+          <Shield className="w-16 h-16 animate-pulse text-purple-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-slate-600 mb-2">验证管理员权限</h3>
+          <p className="text-slate-500">正在检查访问权限...</p>
+        </GlassCard>
+      </div>
+    )
+  }
+
+  // 非管理员用户
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <GlassCard className="text-center p-8">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-red-600 mb-2">访问被拒绝</h3>
+          <p className="text-slate-500 mb-6">您没有权限访问管理后台</p>
+          <GlassButton
+            onClick={() => router.push('/')}
+            variant="primary"
+            size="md"
+          >
+            返回首页
+          </GlassButton>
+        </GlassCard>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen">
