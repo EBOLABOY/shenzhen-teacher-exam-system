@@ -297,6 +297,18 @@ function PracticeContent() {
       // 更新已完成题目数量
       setCompletedQuestions(prev => prev + 1)
 
+      // 同步用户进度统计
+      try {
+        await fetch('/api/user-progress/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+      } catch (error) {
+        console.warn('同步用户进度失败:', error)
+      }
+
       // 如果答错了，添加到错题本（无论是否为任务模式）
       if (!isCorrect) {
         await addToWrongQuestions(currentQuestion, selectedAnswer)

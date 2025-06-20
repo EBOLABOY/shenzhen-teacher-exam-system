@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, Database, FileText, BarChart3, Key, Users, Plus, Copy, Check, Sparkles, Settings, Shield, AlertTriangle } from 'lucide-react'
+import { Upload, Database, FileText, BarChart3, Key, Users, Plus, Copy, Check, Sparkles, Settings, Shield, AlertTriangle, Edit, Trash2, UserCheck, UserX, Mail, Calendar, Activity } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
 import ImportTool from './import-tool'
@@ -22,8 +22,10 @@ export default function AdminPage() {
   const [authLoading, setAuthLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [user, setUser] = useState<any>(null)
-
-
+  const [editingUser, setEditingUser] = useState<any>(null)
+  const [showUserModal, setShowUserModal] = useState(false)
+  const [userFilter, setUserFilter] = useState<'all' | 'admin' | 'user'>('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   // 生成邀请码
   const generateInviteCode = (length = 8) => {
@@ -82,18 +84,68 @@ export default function AdminPage() {
   // 获取用户列表
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select(`
-          *,
-          user_progress(*)
-        `)
-        .order('created_at', { ascending: false })
+      console.log('开始获取用户列表...')
 
-      if (error) throw error
-      setUsers(data || [])
+      // 使用API端点获取用户列表，避免RLS问题
+      const response = await fetch('/api/admin/users')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '获取用户列表失败')
+      }
+
+      const result = await response.json()
+      console.log('获取到的用户数据:', result.users)
+
+      setUsers(result.users || [])
     } catch (error) {
       console.error('获取用户列表失败:', error)
+      console.error('错误详情:', JSON.stringify(error, null, 2))
+
+      // 如果API失败，尝试直接查询（用于开发环境）
+      try {
+        console.log('尝试直接查询数据库...')
+
+        // 分别查询用户配置和用户进度
+        const { data: profiles, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (profilesError) {
+          console.error('查询用户配置失败:', profilesError)
+          setUsers([])
+          return
+        }
+
+        console.log('获取到用户配置:', profiles)
+
+        // 获取用户进度
+        if (profiles && profiles.length > 0) {
+          const userIds = profiles.map(p => p.user_id)
+          const { data: progressData, error: progressError } = await supabase
+            .from('user_progress')
+            .select('*')
+            .in('user_id', userIds)
+
+          if (progressError) {
+            console.warn('获取用户进度失败:', progressError)
+          }
+
+          // 合并数据
+          const usersWithProgress = profiles.map(profile => ({
+            ...profile,
+            user_progress: progressData?.filter(p => p.user_id === profile.user_id) || []
+          }))
+
+          setUsers(usersWithProgress)
+        } else {
+          setUsers(profiles || [])
+        }
+      } catch (fallbackError) {
+        console.error('备用查询失败:', fallbackError)
+        setUsers([])
+      }
     }
   }
 
@@ -134,6 +186,97 @@ export default function AdminPage() {
       console.error('复制失败:', error)
     }
   }
+
+  // 更新用户权限
+  const updateUserRole = async (userId: string, isAdmin: boolean) => {
+    setLoading(true)
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ is_admin: isAdmin })
+        .eq('user_id', userId)
+
+      if (error) throw error
+
+      alert(`用户权限更新成功！`)
+      await fetchUsers()
+    } catch (error) {
+      console.error('更新用户权限失败:', error)
+      alert(`更新用户权限失败: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 删除用户
+  const deleteUser = async (userId: string, displayName: string) => {
+    if (!confirm(`确定要删除用户 "${displayName}" 吗？此操作不可恢复！`)) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      // 删除用户相关数据
+      await supabase.from('user_answers').delete().eq('user_id', userId)
+      await supabase.from('user_progress').delete().eq('user_id', userId)
+      await supabase.from('wrong_questions').delete().eq('user_id', userId)
+      await supabase.from('user_profiles').delete().eq('user_id', userId)
+
+      alert('用户删除成功！')
+      await fetchUsers()
+    } catch (error) {
+      console.error('删除用户失败:', error)
+      alert(`删除用户失败: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 编辑用户
+  const editUser = (user: any) => {
+    setEditingUser(user)
+    setShowUserModal(true)
+  }
+
+  // 保存用户编辑
+  const saveUserEdit = async () => {
+    if (!editingUser) return
+
+    setLoading(true)
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          display_name: editingUser.display_name,
+          is_admin: editingUser.is_admin
+        })
+        .eq('user_id', editingUser.user_id)
+
+      if (error) throw error
+
+      alert('用户信息更新成功！')
+      setShowUserModal(false)
+      setEditingUser(null)
+      await fetchUsers()
+    } catch (error) {
+      console.error('更新用户信息失败:', error)
+      alert(`更新用户信息失败: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 过滤用户列表
+  const filteredUsers = users.filter(user => {
+    const matchesFilter = userFilter === 'all' ||
+                         (userFilter === 'admin' && user.is_admin) ||
+                         (userFilter === 'user' && !user.is_admin)
+
+    const matchesSearch = searchTerm === '' ||
+                         user.display_name?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    return matchesFilter && matchesSearch
+  })
 
   // 检查用户权限
   useEffect(() => {
@@ -474,76 +617,282 @@ export default function AdminPage() {
 
         {/* 用户管理标签页 */}
         {activeTab === 'users' && (
-          <GlassCard>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">用户管理</h2>
-              <p className="text-slate-600 mt-1">查看和管理系统用户</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
-                      用户名
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
-                      角色
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
-                      注册时间
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
-                      答题统计
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
-                      正确率
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-slate-800">
-                          {user.display_name}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-3 py-1.5 text-xs font-bold rounded-full ${
-                          user.is_admin
-                            ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                        }`}>
-                          {user.is_admin ? '管理员' : '普通用户'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-600">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-600">
-                        {user.user_progress?.[0]?.total_questions || 0} 题
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-bold px-3 py-1 rounded-full ${
-                          user.user_progress?.[0]?.total_questions > 0
-                            ? Math.round((user.user_progress[0].correct_answers / user.user_progress[0].total_questions) * 100) >= 80
-                              ? 'bg-green-100 text-green-800'
-                              : Math.round((user.user_progress[0].correct_answers / user.user_progress[0].total_questions) * 100) >= 60
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {user.user_progress?.[0]?.total_questions > 0
-                            ? Math.round((user.user_progress[0].correct_answers / user.user_progress[0].total_questions) * 100)
-                            : 0}%
-                        </span>
-                      </td>
+          <div className="space-y-6">
+            <GlassCard>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">用户管理</h2>
+                  <p className="text-slate-600 mt-1">查看和管理系统用户</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* 搜索框 */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="搜索用户名..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full sm:w-64 px-4 py-2 pl-10 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl text-slate-700 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+                    />
+                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
+
+                  {/* 角色过滤 */}
+                  <select
+                    value={userFilter}
+                    onChange={(e) => setUserFilter(e.target.value as 'all' | 'admin' | 'user')}
+                    className="px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+                  >
+                    <option value="all">所有用户</option>
+                    <option value="admin">管理员</option>
+                    <option value="user">普通用户</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 用户统计 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-blue-600 font-medium">总用户数</p>
+                      <p className="text-2xl font-bold text-blue-700">{users.length}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-purple-600 font-medium">管理员</p>
+                      <p className="text-2xl font-bold text-purple-700">
+                        {users.filter(u => u.is_admin).length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                      <Activity className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-green-600 font-medium">活跃用户</p>
+                      <p className="text-2xl font-bold text-green-700">
+                        {users.filter(u => u.user_progress?.[0]?.total_questions > 0).length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
+                        用户信息
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
+                        角色
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
+                        注册时间
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
+                        学习统计
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
+                        正确率
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
+                        操作
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </GlassCard>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-bold text-sm">
+                                {user.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-slate-800">
+                                {user.display_name}
+                              </div>
+                              <div className="text-xs text-slate-500 flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                ID: {user.user_id?.slice(0, 8)}...
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-3 py-1.5 text-xs font-bold rounded-full ${
+                            user.is_admin
+                              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                              : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                          }`}>
+                            {user.is_admin ? '管理员' : '普通用户'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-slate-600 flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm">
+                            <div className="flex items-center gap-2 text-slate-600 mb-1">
+                              <Activity className="w-4 h-4" />
+                              <span className="font-medium">
+                                {user.user_progress?.[0]?.total_questions || 0} 题
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              正确: {user.user_progress?.[0]?.correct_answers || 0} |
+                              错误: {(user.user_progress?.[0]?.total_questions || 0) - (user.user_progress?.[0]?.correct_answers || 0)}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`text-sm font-bold px-3 py-1 rounded-full ${
+                            user.user_progress?.[0]?.total_questions > 0
+                              ? Math.round((user.user_progress[0].correct_answers / user.user_progress[0].total_questions) * 100) >= 80
+                                ? 'bg-green-100 text-green-800'
+                                : Math.round((user.user_progress[0].correct_answers / user.user_progress[0].total_questions) * 100) >= 60
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {user.user_progress?.[0]?.total_questions > 0
+                              ? Math.round((user.user_progress[0].correct_answers / user.user_progress[0].total_questions) * 100)
+                              : 0}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <GlassButton
+                              onClick={() => editUser(user)}
+                              variant="glass"
+                              size="sm"
+                              disabled={loading}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </GlassButton>
+
+                            <GlassButton
+                              onClick={() => updateUserRole(user.user_id, !user.is_admin)}
+                              variant={user.is_admin ? "glass" : "primary"}
+                              size="sm"
+                              disabled={loading || user.user_id === user?.id}
+                              title={user.user_id === user?.id ? "不能修改自己的权限" : "切换用户权限"}
+                            >
+                              {user.is_admin ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </GlassButton>
+
+                            <GlassButton
+                              onClick={() => deleteUser(user.user_id, user.display_name)}
+                              variant="glass"
+                              size="sm"
+                              disabled={loading || user.user_id === user?.id}
+                              className="text-red-600 hover:bg-red-50"
+                              title={user.user_id === user?.id ? "不能删除自己" : "删除用户"}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </GlassButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </GlassCard>
+
+            {/* 用户编辑模态框 */}
+            {showUserModal && editingUser && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                <GlassCard className="w-full max-w-md mx-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-slate-800">编辑用户</h3>
+                    <GlassButton
+                      onClick={() => setShowUserModal(false)}
+                      variant="glass"
+                      size="sm"
+                    >
+                      ✕
+                    </GlassButton>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        用户名
+                      </label>
+                      <input
+                        type="text"
+                        value={editingUser.display_name || ''}
+                        onChange={(e) => setEditingUser({
+                          ...editingUser,
+                          display_name: e.target.value
+                        })}
+                        className="w-full px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        用户角色
+                      </label>
+                      <select
+                        value={editingUser.is_admin ? 'admin' : 'user'}
+                        onChange={(e) => setEditingUser({
+                          ...editingUser,
+                          is_admin: e.target.value === 'admin'
+                        })}
+                        className="w-full px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+                      >
+                        <option value="user">普通用户</option>
+                        <option value="admin">管理员</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <GlassButton
+                      onClick={() => setShowUserModal(false)}
+                      variant="glass"
+                      size="md"
+                      className="flex-1"
+                    >
+                      取消
+                    </GlassButton>
+                    <GlassButton
+                      onClick={saveUserEdit}
+                      variant="primary"
+                      size="md"
+                      className="flex-1"
+                      disabled={loading}
+                    >
+                      {loading ? '保存中...' : '保存'}
+                    </GlassButton>
+                  </div>
+                </GlassCard>
+              </div>
+            )}
+          </div>
         )}
       </GlassContainer>
     </div>
