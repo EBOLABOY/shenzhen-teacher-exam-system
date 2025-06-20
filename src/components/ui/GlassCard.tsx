@@ -4,10 +4,11 @@ import { cn } from '@/lib/utils'
 interface GlassCardProps {
   children: React.ReactNode
   className?: string
-  variant?: 'default' | 'light' | 'dark'
+  variant?: 'default' | 'light' | 'dark' | 'primary'
   hover?: boolean
   glow?: boolean
   float?: boolean
+  onClick?: () => void
 }
 
 export const GlassCard: React.FC<GlassCardProps> = ({
@@ -16,29 +17,33 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   variant = 'default',
   hover = true,
   glow = false,
-  float = false
+  float = false,
+  onClick
 }) => {
   const baseClasses = 'card-glass'
   const variantClasses = {
     default: '',
     light: 'glass-light',
-    dark: 'glass-dark'
+    dark: 'glass-dark',
+    primary: 'glass-primary'
   }
-  
+
   const animationClasses = [
     glow && 'pulse-glow',
     float && 'float-animation'
   ].filter(Boolean).join(' ')
 
   return (
-    <div 
+    <div
       className={cn(
         baseClasses,
         variantClasses[variant],
         animationClasses,
         hover && 'hover:transform hover:scale-105',
+        onClick && 'cursor-pointer',
         className
       )}
+      onClick={onClick}
     >
       {children}
     </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { BookOpen, Users, TrendingUp, Clock, LogOut, Brain, AlertTriangle, Sparkles, Target, Award, Zap } from 'lucide-react'
+import { BookOpen, Users, TrendingUp, Clock, LogOut, Brain, AlertTriangle, Sparkles, Target, Award, Zap, FileText } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassNav, GlassContainer, LoadingGlass } from '@/components/ui'
 
@@ -99,14 +99,18 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
               <GlassButton variant="primary" size="lg" href="/practice">
                 <BookOpen className="w-5 h-5" />
-                开始刷题
+                随机刷题
               </GlassButton>
-              <GlassButton variant="secondary" size="lg" href="/wrong-questions">
+              <GlassButton variant="secondary" size="lg" href="/exams">
+                <FileText className="w-5 h-5" />
+                试卷中心
+              </GlassButton>
+              <GlassButton variant="accent" size="lg" href="/wrong-questions">
                 <Brain className="w-5 h-5" />
                 AI错题分析
               </GlassButton>
               {userProfile?.is_admin && (
-                <GlassButton variant="accent" size="lg" href="/admin">
+                <GlassButton variant="glass" size="lg" href="/admin">
                   <Users className="w-5 h-5" />
                   管理后台
                 </GlassButton>

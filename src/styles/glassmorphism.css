@@ -87,6 +87,13 @@ body {
   -webkit-backdrop-filter: blur(15px);
 }
 
+.glass-primary {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(147, 51, 234, 0.2);
+}
+
 .glass:hover {
   background: var(--glass-bg-light);
   transform: translateY(-2px);

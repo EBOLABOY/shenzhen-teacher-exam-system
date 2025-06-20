@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
-import { 
-  Home, 
-  BookOpen, 
-  Target, 
-  Brain, 
-  BarChart3
+import {
+  Home,
+  BookOpen,
+  Target,
+  Brain,
+  BarChart3,
+  FileText
 } from 'lucide-react'
 
 export interface NavigationItem {
@@ -30,6 +31,12 @@ export const navigationItems: NavigationItem[] = [
     href: '/practice',
     icon: BookOpen,
     description: '开始刷题练习'
+  },
+  {
+    name: '试卷中心',
+    href: '/exams',
+    icon: FileText,
+    description: '历年真题和预测卷练习'
   },
   {
     name: '错题本',

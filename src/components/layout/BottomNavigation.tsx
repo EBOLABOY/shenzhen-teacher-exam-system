@@ -3,12 +3,13 @@
 import { useRouter, usePathname } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { useState, useEffect } from 'react'
-import { 
-  Home, 
-  BookOpen, 
-  Target, 
-  BarChart3, 
-  Brain
+import {
+  Home,
+  BookOpen,
+  Target,
+  BarChart3,
+  Brain,
+  FileText
 } from 'lucide-react'
 
 interface NavigationItem {
@@ -29,14 +30,14 @@ const bottomNavItems: NavigationItem[] = [
     icon: BookOpen
   },
   {
+    name: '试卷',
+    href: '/exams',
+    icon: FileText
+  },
+  {
     name: '错题',
     href: '/wrong-questions',
     icon: Target
-  },
-  {
-    name: '任务',
-    href: '/tasks',
-    icon: BarChart3
   },
   {
     name: 'AI',

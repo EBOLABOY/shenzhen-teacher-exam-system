@@ -35,9 +35,16 @@ function PracticeContent() {
   const [taskProgress, setTaskProgress] = useState<any[]>([])
   const [isWrongQuestionMastered, setIsWrongQuestionMastered] = useState(false)
 
+  // 考试模式状态
+  const [isExamMode, setIsExamMode] = useState(false)
+  const [examInfo, setExamInfo] = useState<any>(null)
+
   // 从URL参数获取任务信息
   const taskId = searchParams.get('task_id')
   const mode = searchParams.get('mode')
+  const examYear = searchParams.get('exam_year')
+  const examDate = searchParams.get('exam_date')
+  const examSegment = searchParams.get('exam_segment')
 
   const currentQuestion = questions[currentQuestionIndex]
   const isLastQuestion = currentQuestionIndex === questions.length - 1
@@ -88,10 +95,13 @@ function PracticeContent() {
       // 获取用户已完成题目数量
       await fetchCompletedQuestions(user)
 
-      // 检查是否是任务模式
+      // 检查模式类型
       if (taskId) {
         setIsTaskMode(true)
         await loadTask(taskId, user)
+      } else if (mode === 'exam' && examYear && examDate) {
+        setIsExamMode(true)
+        await loadExamQuestions(user)
       } else {
         await fetchQuestions(user)
       }
@@ -198,6 +208,43 @@ function PracticeContent() {
       console.error('加载任务失败:', error)
       alert('加载任务失败，请重试')
       router.push('/tasks')
+    }
+  }
+
+  // 加载考试题目
+  const loadExamQuestions = async (currentUser: any) => {
+    try {
+      const response = await fetch('/api/exams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          exam_year: parseInt(examYear!),
+          exam_date: examDate!,
+          exam_segment: examSegment || null
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setQuestions(result.data)
+        setTotalQuestions(result.data.length)
+        setExamInfo(result.exam_info)
+        setStartTime(new Date())
+
+        console.log(`加载考试题目成功: ${result.data.length} 道题`)
+        console.log('考试信息:', result.exam_info)
+      } else {
+        console.error('加载考试题目失败:', result.error)
+        alert('加载考试题目失败，请重试')
+        router.push('/exams')
+      }
+    } catch (error) {
+      console.error('加载考试题目失败:', error)
+      alert('加载考试题目失败，请重试')
+      router.push('/exams')
     }
   }
 
@@ -642,11 +689,14 @@ function PracticeContent() {
               <div>
                 <h1 className={`font-bold text-slate-800 flex items-center gap-2 ${isMobile ? 'text-base' : 'text-2xl'}`}>
                   <Sparkles className={`text-blue-600 ${isMobile ? 'w-4 h-4' : 'w-6 h-6'}`} />
-                  {isTaskMode ? currentTask?.title || '任务练习' : '智能刷题练习'}
+                  {isTaskMode ? currentTask?.title || '任务练习' :
+                   isExamMode ? `${examInfo?.exam_year}年真题练习` : '智能刷题练习'}
                 </h1>
                 {!isMobile && (
                   <p className="text-slate-600">
-                    {isTaskMode ? currentTask?.description : `欢迎，${user?.email}`}
+                    {isTaskMode ? currentTask?.description :
+                     isExamMode ? `${examInfo?.exam_date} ${examInfo?.exam_segment || ''}` :
+                     `欢迎，${user?.email}`}
                   </p>
                 )}
                 <div className={`flex items-center gap-4 ${isMobile ? 'mt-0.5' : 'mt-1'}`}>
@@ -680,15 +730,15 @@ function PracticeContent() {
                 </div>
               </div>
             </div>
-            {isTaskMode && (
+            {(isTaskMode || isExamMode) && (
               <GlassButton
                 variant="glass"
                 size="sm"
-                onClick={() => router.push('/tasks')}
+                onClick={() => router.push(isTaskMode ? '/tasks' : '/exams')}
                 className="text-slate-600 hover:text-slate-800"
               >
                 <ArrowLeft className="w-4 h-4" />
-                返回任务
+                {isTaskMode ? '返回任务' : '返回考试'}
               </GlassButton>
             )}
           </div>
