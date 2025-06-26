@@ -15,7 +15,9 @@
     "health-check": "node scripts/check-data-integrity.js --quick",
     "test-predictions": "node scripts/test-predictions.js",
     "deploy-predictions": "node scripts/deploy-predictions.js",
-    "deployment-status": "node scripts/deploy-predictions.js --status"
+    "deployment-status": "node scripts/deploy-predictions.js --status",
+    "quick-check": "node scripts/simple-check.js",
+    "update-github": "node scripts/update-github.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",
