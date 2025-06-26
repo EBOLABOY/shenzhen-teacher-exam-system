@@ -26,6 +26,8 @@ export default function AdminPage() {
   const [showUserModal, setShowUserModal] = useState(false)
   const [userFilter, setUserFilter] = useState<'all' | 'admin' | 'user'>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncResult, setSyncResult] = useState<any>(null)
 
   // 生成邀请码
   const generateInviteCode = (length = 8) => {
@@ -184,6 +186,37 @@ export default function AdminPage() {
       setTimeout(() => setCopiedCode(''), 2000)
     } catch (error) {
       console.error('复制失败:', error)
+    }
+  }
+
+  // 同步所有用户进度统计
+  const syncAllUserProgress = async () => {
+    setSyncLoading(true)
+    setSyncResult(null)
+    try {
+      const response = await fetch('/api/admin/sync-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '同步失败')
+      }
+
+      setSyncResult(result)
+      alert(`同步完成：成功 ${result.summary.success} 个，失败 ${result.summary.error} 个`)
+
+      // 重新获取用户列表以显示最新数据
+      await fetchUsers()
+    } catch (error) {
+      console.error('同步用户进度失败:', error)
+      alert(`同步失败: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setSyncLoading(false)
     }
   }
 
@@ -625,6 +658,25 @@ export default function AdminPage() {
                   <p className="text-slate-600 mt-1">查看和管理系统用户</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
+                  {/* 同步按钮 */}
+                  <GlassButton
+                    onClick={syncAllUserProgress}
+                    disabled={syncLoading}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 disabled:opacity-50"
+                  >
+                    {syncLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        同步中...
+                      </>
+                    ) : (
+                      <>
+                        <Activity className="w-4 h-4" />
+                        同步统计
+                      </>
+                    )}
+                  </GlassButton>
+
                   {/* 搜索框 */}
                   <div className="relative">
                     <input

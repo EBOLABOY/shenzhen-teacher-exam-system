@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.local' });
 
 // Supabase配置 - 需要设置环境变量
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

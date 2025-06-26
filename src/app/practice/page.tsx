@@ -39,6 +39,10 @@ function PracticeContent() {
   const [isExamMode, setIsExamMode] = useState(false)
   const [examInfo, setExamInfo] = useState<any>(null)
 
+  // 预测卷模式状态
+  const [isPredictionMode, setIsPredictionMode] = useState(false)
+  const [predictionInfo, setPredictionInfo] = useState<any>(null)
+
   // 从URL参数获取任务信息
   const taskId = searchParams.get('task_id')
   const mode = searchParams.get('mode')
@@ -102,6 +106,9 @@ function PracticeContent() {
       } else if (mode === 'exam' && examYear && examDate) {
         setIsExamMode(true)
         await loadExamQuestions(user)
+      } else if (mode === 'prediction' && examYear && examDate) {
+        setIsPredictionMode(true)
+        await loadPredictionQuestions(user)
       } else {
         await fetchQuestions(user)
       }
@@ -244,6 +251,43 @@ function PracticeContent() {
     } catch (error) {
       console.error('加载考试题目失败:', error)
       alert('加载考试题目失败，请重试')
+      router.push('/exams')
+    }
+  }
+
+  // 加载预测卷题目
+  const loadPredictionQuestions = async (currentUser: any) => {
+    try {
+      const response = await fetch('/api/predictions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          exam_year: parseInt(examYear!),
+          exam_date: examDate!,
+          exam_segment: examSegment!
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setQuestions(result.data.questions)
+        setTotalQuestions(result.data.questions.length)
+        setPredictionInfo(result.data.exam_info)
+        setStartTime(new Date())
+
+        console.log(`加载预测卷题目成功: ${result.data.questions.length} 道题`)
+        console.log('预测卷信息:', result.data.exam_info)
+      } else {
+        console.error('加载预测卷题目失败:', result.error)
+        alert('加载预测卷题目失败，请重试')
+        router.push('/exams')
+      }
+    } catch (error) {
+      console.error('加载预测卷题目失败:', error)
+      alert('加载预测卷题目失败，请重试')
       router.push('/exams')
     }
   }
@@ -690,12 +734,14 @@ function PracticeContent() {
                 <h1 className={`font-bold text-slate-800 flex items-center gap-2 ${isMobile ? 'text-base' : 'text-2xl'}`}>
                   <Sparkles className={`text-blue-600 ${isMobile ? 'w-4 h-4' : 'w-6 h-6'}`} />
                   {isTaskMode ? currentTask?.title || '任务练习' :
-                   isExamMode ? `${examInfo?.exam_year}年真题练习` : '智能刷题练习'}
+                   isExamMode ? `${examInfo?.year}年真题练习` :
+                   isPredictionMode ? `${predictionInfo?.year}年预测卷练习` : '智能刷题练习'}
                 </h1>
                 {!isMobile && (
                   <p className="text-slate-600">
                     {isTaskMode ? currentTask?.description :
-                     isExamMode ? `${examInfo?.exam_date} ${examInfo?.exam_segment || ''}` :
+                     isExamMode ? `${examInfo?.date} ${examInfo?.segment || ''}` :
+                     isPredictionMode ? `${predictionInfo?.date} ${predictionInfo?.segment || ''}` :
                      `欢迎，${user?.email}`}
                   </p>
                 )}
@@ -730,7 +776,7 @@ function PracticeContent() {
                 </div>
               </div>
             </div>
-            {(isTaskMode || isExamMode) && (
+            {(isTaskMode || isExamMode || isPredictionMode) && (
               <GlassButton
                 variant="glass"
                 size="sm"
@@ -738,7 +784,7 @@ function PracticeContent() {
                 className="text-slate-600 hover:text-slate-800"
               >
                 <ArrowLeft className="w-4 h-4" />
-                {isTaskMode ? '返回任务' : '返回考试'}
+                {isTaskMode ? '返回任务' : isPredictionMode ? '返回预测卷' : '返回考试'}
               </GlassButton>
             )}
           </div>

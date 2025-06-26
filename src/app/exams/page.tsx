@@ -20,8 +20,11 @@ export default function ExamsPage() {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [exams, setExams] = useState<ExamInfo[]>([])
+  const [predictions, setPredictions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [predictionLoading, setPredictionLoading] = useState(false)
   const [selectedExam, setSelectedExam] = useState<ExamInfo | null>(null)
+  const [selectedPrediction, setSelectedPrediction] = useState<any>(null)
   const [examStats, setExamStats] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<TabType>('history')
@@ -44,6 +47,13 @@ export default function ExamsPage() {
     checkAuth()
   }, [])
 
+  // 当切换到预测卷标签时获取预测卷数据
+  useEffect(() => {
+    if (activeTab === 'prediction' && predictions.length === 0) {
+      fetchPredictions()
+    }
+  }, [activeTab])
+
   const fetchExams = async () => {
     try {
       const response = await fetch('/api/exams')
@@ -58,6 +68,24 @@ export default function ExamsPage() {
       console.error('获取考试列表失败:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPredictions = async () => {
+    setPredictionLoading(true)
+    try {
+      const response = await fetch('/api/predictions')
+      const result = await response.json()
+
+      if (result.success) {
+        setPredictions(result.data)
+      } else {
+        console.error('获取预测卷列表失败:', result.error)
+      }
+    } catch (error) {
+      console.error('获取预测卷列表失败:', error)
+    } finally {
+      setPredictionLoading(false)
     }
   }
 
@@ -92,6 +120,11 @@ export default function ExamsPage() {
     }
   }
 
+  const handlePredictionSelect = async (prediction: any) => {
+    setSelectedPrediction(prediction)
+    // 预测卷不需要额外获取统计信息，因为已经包含在列表中
+  }
+
   const startExamPractice = () => {
     if (!selectedExam) return
 
@@ -101,6 +134,20 @@ export default function ExamsPage() {
       exam_year: selectedExam.exam_year.toString(),
       exam_date: selectedExam.exam_date,
       exam_segment: selectedExam.exam_segment || ''
+    })
+
+    router.push(`/practice?${params.toString()}`)
+  }
+
+  const startPredictionPractice = () => {
+    if (!selectedPrediction) return
+
+    // 跳转到练习页面，传递预测卷信息
+    const params = new URLSearchParams({
+      mode: 'prediction',
+      exam_year: selectedPrediction.exam_year.toString(),
+      exam_date: selectedPrediction.exam_date,
+      exam_segment: selectedPrediction.exam_segment
     })
 
     router.push(`/practice?${params.toString()}`)
@@ -153,13 +200,12 @@ export default function ExamsPage() {
               onClick={() => setActiveTab('prediction')}
               className={`flex items-center gap-2 ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'} rounded-lg transition-all duration-200 ${
                 activeTab === 'prediction'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
               <Zap className="w-4 h-4" />
               <span className="font-medium">{isMobile ? '预测' : '预测卷'}</span>
-              <span className={`text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full ${isMobile ? 'hidden' : ''}`}>即将上线</span>
             </button>
             <button
               onClick={() => setActiveTab('special')}
@@ -239,20 +285,55 @@ export default function ExamsPage() {
             {activeTab === 'prediction' && (
               <GlassCard className={isMobile ? 'mx-2' : ''}>
                 <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-slate-800 mb-6`}>AI预测卷</h2>
-                <div className={`text-center ${isMobile ? 'py-8' : 'py-12'}`}>
-                  <Zap className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} text-orange-400 mx-auto mb-4`} />
-                  <p className={`text-slate-500 ${isMobile ? 'text-base' : 'text-lg'} font-medium mb-2`}>预测卷功能即将上线</p>
-                  <p className={`text-sm text-slate-400 ${isMobile ? 'mb-4' : 'mb-6'}`}>基于历年真题和考试趋势，AI智能生成预测试卷</p>
-                  <div className={`bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg ${isMobile ? 'p-3 mx-4' : 'p-4 max-w-md mx-auto'}`}>
-                    <h4 className={`font-medium text-orange-800 mb-2 ${isMobile ? 'text-sm' : ''}`}>预测卷特色功能</h4>
-                    <ul className={`${isMobile ? 'text-xs' : 'text-sm'} text-orange-700 space-y-1 text-left`}>
-                      <li>• AI分析历年考试趋势</li>
-                      <li>• 智能预测高频考点</li>
-                      <li>• 模拟真实考试难度</li>
-                      <li>• 个性化推荐题目</li>
-                    </ul>
+
+                {predictionLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
+                    <p className="text-slate-600">加载预测卷中...</p>
                   </div>
-                </div>
+                ) : predictions.length === 0 ? (
+                  <div className={`text-center ${isMobile ? 'py-8' : 'py-12'}`}>
+                    <Zap className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} text-orange-400 mx-auto mb-4`} />
+                    <p className={`text-slate-500 ${isMobile ? 'text-base' : 'text-lg'} font-medium mb-2`}>暂无预测卷</p>
+                    <p className={`text-sm text-slate-400 ${isMobile ? 'mb-4' : 'mb-6'}`}>基于历年真题和考试趋势，AI智能生成预测试卷</p>
+                  </div>
+                ) : (
+                  <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                    {predictions.map((prediction, index) => (
+                      <GlassCard
+                        key={index}
+                        className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] ${
+                          selectedPrediction === prediction ? 'ring-2 ring-orange-500 bg-orange-50' : ''
+                        }`}
+                        onClick={() => handlePredictionSelect(prediction)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Zap className="w-5 h-5 text-orange-500" />
+                              <h3 className={`font-bold text-slate-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                                {prediction.exam_year}年{prediction.exam_date}
+                              </h3>
+                              <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">
+                                预测卷
+                              </span>
+                            </div>
+                            <p className={`text-slate-600 mb-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                              {prediction.exam_segment}
+                            </p>
+                            <div className={`flex flex-wrap gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-slate-500`}>
+                              <span className="flex items-center gap-1">
+                                <BookOpen className="w-3 h-3" />
+                                {prediction.question_count}题
+                              </span>
+                            </div>
+                          </div>
+                          {!isMobile && <ArrowRight className="w-5 h-5 text-slate-400" />}
+                        </div>
+                      </GlassCard>
+                    ))}
+                  </div>
+                )}
               </GlassCard>
             )}
 
@@ -279,37 +360,51 @@ export default function ExamsPage() {
 
           {/* 考试详情和开始按钮 */}
           <div className={`space-y-${isMobile ? '4' : '6'}`}>
-            {selectedExam ? (
+            {(selectedExam || selectedPrediction) ? (
               <>
                 <GlassCard className={isMobile ? 'mx-2' : ''}>
-                  <h3 className={`font-bold text-slate-800 mb-4 ${isMobile ? 'text-base' : ''}`}>考试信息</h3>
+                  <h3 className={`font-bold text-slate-800 mb-4 flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+                    {selectedPrediction ? <Zap className="w-5 h-5 text-orange-500" /> : <Calendar className="w-5 h-5 text-blue-500" />}
+                    {selectedPrediction ? '预测卷信息' : '考试信息'}
+                  </h3>
                   <div className={`space-y-${isMobile ? '2' : '3'}`}>
                     <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                       <Calendar className="w-4 h-4 text-blue-500" />
-                      <span className="text-slate-600">考试时间:</span>
-                      <span className="font-medium">{selectedExam.exam_year}年{selectedExam.exam_date}</span>
+                      <span className="text-slate-600">{selectedPrediction ? '预测时间:' : '考试时间:'}</span>
+                      <span className="font-medium">
+                        {selectedPrediction ?
+                          `${selectedPrediction.exam_year}年${selectedPrediction.exam_date}` :
+                          `${selectedExam.exam_year}年${selectedExam.exam_date}`
+                        }
+                      </span>
                     </div>
-                    {selectedExam.exam_segment && (
+                    {(selectedExam?.exam_segment || selectedPrediction?.exam_segment) && (
                       <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                         <Users className="w-4 h-4 text-green-500" />
-                        <span className="text-slate-600">考试段别:</span>
-                        <span className={`font-medium ${isMobile ? 'truncate' : ''}`}>{selectedExam.exam_segment}</span>
+                        <span className="text-slate-600">{selectedPrediction ? '预测类型:' : '考试段别:'}</span>
+                        <span className={`font-medium ${isMobile ? 'truncate' : ''}`}>
+                          {selectedPrediction ? selectedPrediction.exam_segment : selectedExam.exam_segment}
+                        </span>
                       </div>
                     )}
                     <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                       <BookOpen className="w-4 h-4 text-purple-500" />
                       <span className="text-slate-600">题目数量:</span>
-                      <span className="font-medium">{selectedExam.question_count}题</span>
+                      <span className="font-medium">
+                        {selectedPrediction ? selectedPrediction.question_count : selectedExam.question_count}题
+                      </span>
                     </div>
                     <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                       <Clock className="w-4 h-4 text-orange-500" />
                       <span className="text-slate-600">预计用时:</span>
-                      <span className="font-medium">{Math.ceil(selectedExam.question_count * 1.5)}分钟</span>
+                      <span className="font-medium">
+                        {Math.ceil((selectedPrediction ? selectedPrediction.question_count : selectedExam.question_count) * 1.5)}分钟
+                      </span>
                     </div>
                   </div>
                 </GlassCard>
 
-                {examStats && (
+                {(examStats || selectedPrediction) && (
                   <GlassCard className={isMobile ? 'mx-2' : ''}>
                     <h3 className={`font-bold text-slate-800 mb-4 flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
                       <BarChart3 className="w-5 h-5" />
@@ -321,7 +416,7 @@ export default function ExamsPage() {
                       <div>
                         <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-slate-700 mb-2`}>科目分布</p>
                         <div className="space-y-1">
-                          {Object.entries(examStats.subject_distribution).map(([subject, count]) => (
+                          {Object.entries((selectedPrediction ? selectedPrediction.subject_distribution : examStats.subject_distribution) || {}).map(([subject, count]) => (
                             <div key={subject} className={`flex justify-between ${isMobile ? 'text-xs' : 'text-sm'}`}>
                               <span className="text-slate-600 truncate">{subject}</span>
                               <span className="font-medium">{count}题</span>
@@ -334,7 +429,7 @@ export default function ExamsPage() {
                       <div>
                         <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-slate-700 mb-2`}>难度分布</p>
                         <div className="space-y-1">
-                          {Object.entries(examStats.difficulty_distribution).map(([difficulty, count]) => (
+                          {Object.entries((selectedPrediction ? selectedPrediction.difficulty_distribution : examStats.difficulty_distribution) || {}).map(([difficulty, count]) => (
                             <div key={difficulty} className={`flex justify-between ${isMobile ? 'text-xs' : 'text-sm'}`}>
                               <span className="text-slate-600">
                                 {difficulty === 'easy' ? '简单' : difficulty === 'medium' ? '中等' : '困难'}
@@ -350,22 +445,27 @@ export default function ExamsPage() {
 
                 <div className={isMobile ? 'mx-2' : ''}>
                   <GlassButton
-                    onClick={startExamPractice}
+                    onClick={selectedPrediction ? startPredictionPractice : startExamPractice}
                     variant="primary"
                     size={isMobile ? "md" : "lg"}
                     className="w-full"
-                    disabled={loading}
+                    disabled={loading || predictionLoading}
                   >
-                    {loading ? '加载中...' : '开始练习'}
+                    {(loading || predictionLoading) ? '加载中...' : `开始${selectedPrediction ? '预测卷' : '考试'}练习`}
                   </GlassButton>
                 </div>
               </>
             ) : (
               <GlassCard className={`text-center ${isMobile ? 'py-8 mx-2' : 'py-12'}`}>
                 <FileText className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} text-slate-400 mx-auto mb-4`} />
-                <p className="text-slate-500">请选择一个考试卷子</p>
+                <p className="text-slate-500">
+                  请选择一个{activeTab === 'prediction' ? '预测卷' : '考试卷子'}
+                </p>
                 <p className={`text-sm text-slate-400 mt-2 ${isMobile ? 'px-4' : ''}`}>
-                  {isMobile ? '点击上方的考试卷子查看详情' : '点击左侧的考试卷子查看详情'}
+                  {isMobile ?
+                    `点击上方的${activeTab === 'prediction' ? '预测卷' : '考试卷子'}查看详情` :
+                    `点击左侧的${activeTab === 'prediction' ? '预测卷' : '考试卷子'}查看详情`
+                  }
                 </p>
               </GlassCard>
             )}

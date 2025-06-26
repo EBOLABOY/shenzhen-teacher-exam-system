@@ -9,7 +9,13 @@
     "lint": "next lint",
     "init-admin": "node scripts/init-admin.js",
     "import-questions": "node scripts/import-questions-to-db.js",
-    "deploy": "node scripts/deploy.js"
+    "deploy": "node scripts/deploy.js",
+    "fix-progress": "node scripts/fix-user-progress.js",
+    "check-data": "node scripts/check-data-integrity.js",
+    "health-check": "node scripts/check-data-integrity.js --quick",
+    "test-predictions": "node scripts/test-predictions.js",
+    "deploy-predictions": "node scripts/deploy-predictions.js",
+    "deployment-status": "node scripts/deploy-predictions.js --status"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",
