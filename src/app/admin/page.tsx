@@ -28,6 +28,8 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncResult, setSyncResult] = useState<any>(null)
+  const [fixPredictionsLoading, setFixPredictionsLoading] = useState(false)
+  const [fixPredictionsResult, setFixPredictionsResult] = useState<any>(null)
 
   // 生成邀请码
   const generateInviteCode = (length = 8) => {
@@ -217,6 +219,42 @@ export default function AdminPage() {
       alert(`同步失败: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setSyncLoading(false)
+    }
+  }
+
+  // 修复预测卷数据
+  const fixPredictionsData = async () => {
+    setFixPredictionsLoading(true)
+    setFixPredictionsResult(null)
+
+    try {
+      const response = await fetch('/api/admin/fix-predictions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '修复失败')
+      }
+
+      setFixPredictionsResult(result)
+
+      if (result.success) {
+        alert(`预测卷修复成功！导入了 ${result.data.totalQuestions} 道题目`)
+        // 重新获取统计数据
+        await fetchStats()
+      } else {
+        alert(`修复失败: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('修复预测卷失败:', error)
+      alert(`修复失败: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setFixPredictionsLoading(false)
     }
   }
 
@@ -673,6 +711,25 @@ export default function AdminPage() {
                       <>
                         <Activity className="w-4 h-4" />
                         同步统计
+                      </>
+                    )}
+                  </GlassButton>
+
+                  {/* 修复预测卷按钮 */}
+                  <GlassButton
+                    onClick={fixPredictionsData}
+                    disabled={fixPredictionsLoading}
+                    className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700 disabled:opacity-50"
+                  >
+                    {fixPredictionsLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        修复中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        修复预测卷
                       </>
                     )}
                   </GlassButton>

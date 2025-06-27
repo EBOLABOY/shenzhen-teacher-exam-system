@@ -135,18 +135,31 @@ export async function POST(request: NextRequest) {
     }
 
     // 格式化题目数据
-    const formattedQuestions = questions.map(q => ({
-      id: q.id,
-      question: q.question,
-      options: q.options,
-      answer: q.answer,
-      explanation: q.explanation,
-      type: q.type,
-      subject: q.subject,
-      difficulty: q.difficulty,
-      question_number: q.question_number,
-      points: q.points
-    }))
+    const formattedQuestions = questions.map(q => {
+      // 确保选项是对象格式
+      let options = q.options;
+      if (typeof options === 'string') {
+        try {
+          options = JSON.parse(options);
+        } catch (e) {
+          console.error('解析选项失败:', e, '原始数据:', options);
+          options = {};
+        }
+      }
+
+      return {
+        id: q.id,
+        question: q.question,
+        options: options,
+        answer: q.answer,
+        explanation: q.explanation,
+        type: q.type,
+        subject: q.subject,
+        difficulty: q.difficulty,
+        question_number: q.question_number,
+        points: q.points
+      };
+    })
 
     return NextResponse.json({
       success: true,
