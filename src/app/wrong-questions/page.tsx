@@ -528,6 +528,18 @@ export default function WrongQuestionsPage() {
                         const isCorrect = correctAnswer === key;
                         const isUserChoice = userAnswer === key;
 
+                        // 调试信息 - 只对第一个选项显示
+                        if (key === 'A') {
+                          console.log('答案标记调试:', {
+                            questionId: wrongQuestion.questions.id,
+                            correctAnswer,
+                            userAnswer,
+                            currentKey: key,
+                            isCorrect,
+                            isUserChoice
+                          });
+                        }
+
                         return (
                           <div key={key} className={`p-3 rounded-lg border-2 transition-all ${
                             isCorrect
