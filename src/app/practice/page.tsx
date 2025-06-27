@@ -177,10 +177,28 @@ function PracticeContent() {
 
       if (questionsError) throw questionsError
 
-      // 按照任务中的顺序排列题目
-      const orderedQuestions = task.question_ids.map((id: string) =>
-        taskQuestions.find((q: any) => q.id === id)
-      ).filter(Boolean)
+      // 按照任务中的顺序排列题目并格式化选项
+      const orderedQuestions = task.question_ids.map((id: string) => {
+        const question = taskQuestions.find((q: any) => q.id === id)
+        if (question) {
+          // 确保选项是对象格式
+          let options = question.options;
+          if (typeof options === 'string') {
+            try {
+              options = JSON.parse(options);
+            } catch (e) {
+              console.error('解析任务题目选项失败:', e, '原始数据:', options);
+              options = {};
+            }
+          }
+
+          return {
+            ...question,
+            options: options
+          };
+        }
+        return null;
+      }).filter(Boolean)
 
       setQuestions(orderedQuestions)
       setTotalQuestions(orderedQuestions.length)

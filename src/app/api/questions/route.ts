@@ -83,10 +83,29 @@ export async function GET(request: NextRequest) {
         .slice(0, limit)
     }
 
+    // 格式化题目数据，确保选项是对象格式
+    const formattedQuestions = finalQuestions.map(q => {
+      // 确保选项是对象格式
+      let options = q.options;
+      if (typeof options === 'string') {
+        try {
+          options = JSON.parse(options);
+        } catch (e) {
+          console.error('解析选项失败:', e, '原始数据:', options);
+          options = {};
+        }
+      }
+
+      return {
+        ...q,
+        options: options
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      data: finalQuestions,
-      total: finalQuestions.length,
+      data: formattedQuestions,
+      total: formattedQuestions.length,
       excluded_count: excludeAnswered && user ?
         (await supabase.from('user_answers').select('question_id', { count: 'exact' }).eq('user_id', user.id)).count || 0 : 0
     })

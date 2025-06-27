@@ -80,8 +80,32 @@ export async function GET(request: NextRequest) {
 
     const { count } = await countQuery
 
+    // 格式化错题数据，确保关联题目的选项是对象格式
+    const formattedWrongQuestions = (wrongQuestions || []).map(wq => {
+      if (wq.questions && wq.questions.options) {
+        let options = wq.questions.options;
+        if (typeof options === 'string') {
+          try {
+            options = JSON.parse(options);
+          } catch (e) {
+            console.error('解析错题选项失败:', e, '原始数据:', options);
+            options = {};
+          }
+        }
+
+        return {
+          ...wq,
+          questions: {
+            ...wq.questions,
+            options: options
+          }
+        };
+      }
+      return wq;
+    });
+
     return NextResponse.json({
-      data: wrongQuestions,
+      data: formattedWrongQuestions,
       pagination: {
         page,
         limit,

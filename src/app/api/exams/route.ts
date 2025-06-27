@@ -151,9 +151,28 @@ export async function POST(request: NextRequest) {
       stats.section_distribution[q.section_type || '未知'] = (stats.section_distribution[q.section_type || '未知'] || 0) + 1
     })
 
+    // 格式化题目数据，确保选项是对象格式
+    const formattedQuestions = (questions || []).map(q => {
+      // 确保选项是对象格式
+      let options = q.options;
+      if (typeof options === 'string') {
+        try {
+          options = JSON.parse(options);
+        } catch (e) {
+          console.error('解析选项失败:', e, '原始数据:', options);
+          options = {};
+        }
+      }
+
+      return {
+        ...q,
+        options: options
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      data: questions || [],
+      data: formattedQuestions,
       stats,
       exam_info: {
         exam_year,

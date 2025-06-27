@@ -18,7 +18,11 @@
     "deployment-status": "node scripts/deploy-predictions.js --status",
     "quick-check": "node scripts/simple-check.js",
     "update-github": "node scripts/update-github.js",
-    "fix-predictions": "node scripts/fix-prediction-data.js"
+    "fix-predictions": "node scripts/fix-prediction-data.js",
+    "simple-fix-predictions": "node scripts/simple-fix-predictions.js",
+    "check-options": "node scripts/check-options-format.js",
+    "test-apis": "node scripts/test-all-apis.js",
+    "fix-all-options": "node scripts/fix-all-options.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",
