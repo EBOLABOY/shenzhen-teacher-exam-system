@@ -142,7 +142,7 @@ function PracticeContent() {
 
       if (!error && count !== null) {
         setCompletedQuestions(count)
-        console.log(`用户已完成 ${count} 道题目`)
+        // 已完成题目数量更新
       }
     } catch (error) {
       console.error('获取已完成题目数量失败:', error)
@@ -343,16 +343,41 @@ function PracticeContent() {
       if (error) throw error
 
       if (allQuestions && allQuestions.length > 0) {
-        // 4. 从获取的25道题目中随机选择20道
-        const shuffled = allQuestions
+        // 4. 格式化题目数据，确保选项是对象格式
+        const formattedQuestions = allQuestions.map(q => {
+          let options = q.options;
+
+          // 处理字符串格式的选项
+          if (typeof options === 'string') {
+            try {
+              options = JSON.parse(options);
+            } catch (e) {
+              console.error('解析选项失败:', e, '题目ID:', q.id, '原始数据:', options);
+              options = {};
+            }
+          }
+
+          // 确保options是一个有效的对象
+          if (!options || typeof options !== 'object' || Array.isArray(options)) {
+            console.warn('选项数据格式异常，题目ID:', q.id, '原始数据:', options);
+            options = {};
+          }
+
+          return {
+            ...q,
+            options: options
+          };
+        });
+
+        // 5. 从格式化的题目中随机选择20道
+        const shuffled = formattedQuestions
           .sort(() => Math.random() - 0.5) // 更好的随机排序
-          .slice(0, Math.min(20, allQuestions.length))
+          .slice(0, Math.min(20, formattedQuestions.length))
 
         setQuestions(shuffled)
         setStartTime(new Date())
 
-        console.log(`获取到 ${allQuestions.length} 道未做题目，选择了 ${shuffled.length} 道进行练习`)
-        console.log(`已排除 ${answeredQuestionIds.length} 道已做题目`)
+        // 练习题目获取成功
       } else {
         // 如果没有未做的题目，提示用户
         alert('恭喜！您已经完成了所有题目的练习。可以重新开始或查看错题本进行复习。')
@@ -490,17 +515,22 @@ function PracticeContent() {
   const addToWrongQuestions = async (question: any, userAnswer: string) => {
     try {
       // 检查是否已经在错题本中
-      const { data: existing } = await supabase
+      const { data: existing, error: selectError } = await supabase
         .from('wrong_questions')
-        .select('id, wrong_count')
+        .select('id')
         .eq('user_id', user.id)
         .eq('question_id', question.id)
         .single()
 
+      // 如果表不存在或权限问题，静默处理
+      if (selectError && (selectError.code === '42P01' || selectError.message.includes('406'))) {
+        console.warn('错题本功能暂时不可用:', selectError.message)
+        return
+      }
+
       if (existing) {
         // 更新错误次数 - 使用基本字段
         const updateData: any = {
-          wrong_count: existing.wrong_count + 1,
           last_wrong_at: new Date().toISOString(),
           is_mastered: false
         }
@@ -521,7 +551,6 @@ function PracticeContent() {
         let insertData: any = {
           user_id: user.id,
           question_id: question.id,
-          wrong_count: 1,
           last_wrong_at: new Date().toISOString(),
           is_mastered: false
         }
@@ -553,7 +582,6 @@ function PracticeContent() {
             const basicData = {
               user_id: user.id,
               question_id: question.id,
-              wrong_count: 1,
               last_wrong_at: new Date().toISOString(),
               is_mastered: false
             }
@@ -587,6 +615,12 @@ function PracticeContent() {
         .delete({ count: 'exact' })
         .eq('user_id', user?.id)
         .eq('question_id', questionId)
+
+      // 如果表不存在或权限问题，静默处理
+      if (error && (error.code === '42P01' || error.message.includes('406'))) {
+        console.warn('错题本删除功能暂时不可用:', error.message)
+        return
+      }
 
       if (error) {
         console.error('❌ 从错题本移除题目失败:', error)
@@ -886,9 +920,37 @@ function PracticeContent() {
               {(() => {
                 // 处理缺少选项的判断题
                 let options = currentQuestion.options;
+
+                // 选项格式化完成
+
+                // 确保选项是对象格式
+                if (typeof options === 'string') {
+                  try {
+                    options = JSON.parse(options);
+                    console.log('解析后的选项:', options);
+                  } catch (e) {
+                    console.error('选项解析失败:', e, '原始数据:', options);
+                    options = {};
+                  }
+                }
+
+                // 确保options是一个有效的对象
+                if (!options || typeof options !== 'object' || Array.isArray(options)) {
+                  console.warn('选项数据格式异常，重置为空对象:', options);
+                  options = {};
+                }
+
+                // 处理判断题的空选项
                 if (questionType === 'trueOrFalse' && Object.keys(options).length === 0) {
                   options = { A: '正确', B: '错误' };
                 }
+
+                // 处理其他题型的空选项或异常选项
+                if (Object.keys(options).length === 0 && questionType !== 'trueOrFalse') {
+                  console.error('非判断题缺少选项数据，题目ID:', currentQuestion.id);
+                  options = { A: '选项A', B: '选项B', C: '选项C', D: '选项D' };
+                }
+
                 return Object.entries(options);
               })().map(([key, value]: [string, any]) => {
                 const isSelected = questionType === 'multipleChoice'

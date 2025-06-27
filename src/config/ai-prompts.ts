@@ -172,6 +172,10 @@ export const DIFFICULTY_MAPPING = {
 export const QUESTION_TYPE_MAPPING = {
   'singleChoice': { name: '单选题', description: '单项选择题' },
   'multipleChoice': { name: '多选题', description: '多项选择题' },
+  'multiple_choice': { name: '单选题', description: '单项选择题' },
+  'multiple_select': { name: '多选题', description: '多项选择题' },
   'trueOrFalse': { name: '判断题', description: '判断正误题' },
-  'caseStudy': { name: '材料分析题', description: '结合材料进行分析论述' }
+  'true_or_false': { name: '判断题', description: '判断正误题' },
+  'caseStudy': { name: '材料分析题', description: '结合材料进行分析论述' },
+  'case_study': { name: '材料分析题', description: '结合材料进行分析论述' }
 }

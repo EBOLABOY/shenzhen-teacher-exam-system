@@ -118,7 +118,7 @@ export default function WrongQuestionsPage() {
         throw error
       }
 
-      console.log('获取到的错题数据:', data)
+      // 错题数据获取成功
       setWrongQuestions(data || [])
     } catch (error) {
       console.error('获取错题失败:', error)
@@ -501,19 +501,46 @@ export default function WrongQuestionsPage() {
 
                   {wrongQuestion.questions?.options ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
-                      {Object.entries(wrongQuestion.questions.options).map(([key, value]) => (
+                      {(() => {
+                        // 处理选项格式化
+                        let options = wrongQuestion.questions.options;
+
+                        // 如果是字符串，尝试解析为JSON
+                        if (typeof options === 'string') {
+                          try {
+                            options = JSON.parse(options);
+                          } catch (e) {
+                            console.error('解析错题选项失败:', e, '原始数据:', options);
+                            options = {};
+                          }
+                        }
+
+                        // 确保options是一个有效的对象
+                        if (!options || typeof options !== 'object' || Array.isArray(options)) {
+                          console.warn('错题选项数据格式异常:', options);
+                          options = {};
+                        }
+
+                        return Object.entries(options);
+                      })().map(([key, value]) => {
+                        const correctAnswer = wrongQuestion.questions?.answer || wrongQuestion.correct_answer;
+                        const userAnswer = wrongQuestion.user_answer;
+                        const isCorrect = correctAnswer === key;
+                        const isUserChoice = userAnswer === key;
+
+                        return (
                         <div key={key} className={`p-3 rounded-lg border-2 transition-all ${
-                          wrongQuestion.questions?.answer === key
+                          isCorrect
                             ? 'border-green-500 bg-green-50 text-green-800'
-                            : wrongQuestion.user_answer === key
+                            : isUserChoice
                             ? 'border-red-500 bg-red-50 text-red-800'
                             : 'border-slate-200 bg-slate-50'
                         }`}>
                           <span className="font-bold">{key}.</span> {value}
-                          {wrongQuestion.questions?.answer === key && (
-                            <span className="ml-2 text-green-600 font-bold">✓ 正确</span>
+                          {isCorrect && (
+                            <span className="ml-2 text-green-600 font-bold">✓ 正确答案</span>
                           )}
-                          {wrongQuestion.user_answer === key && wrongQuestion.questions?.answer !== key && (
+                          {isUserChoice && !isCorrect && (
                             <span className="ml-2 text-red-600 font-bold">✗ 您的答案</span>
                           )}
                         </div>

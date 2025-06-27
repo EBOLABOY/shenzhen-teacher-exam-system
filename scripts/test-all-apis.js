@@ -3,7 +3,8 @@
  * 测试所有API的选项格式是否正确
  */
 
-const fetch = require('node-fetch');
+// 使用Node.js内置的fetch API (Node.js 18+)
+// 如果是较老版本的Node.js，请安装node-fetch: npm install node-fetch
 
 async function testAllAPIs() {
   console.log('🔍 测试所有API的选项格式...\n');

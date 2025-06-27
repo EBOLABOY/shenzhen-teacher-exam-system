@@ -48,17 +48,42 @@ export async function POST(request: NextRequest) {
         }, answers[0].answered_at)
       : null
 
-    // 更新用户进度表
-    const { error: updateError } = await supabase
+    // 先尝试更新，如果不存在则插入
+    const { data: existingProgress } = await supabase
       .from('user_progress')
-      .upsert({
-        user_id: user.id,
-        total_questions: totalQuestions,
-        correct_answers: correctAnswers,
-        total_time: totalTime,
-        last_practice_at: lastPracticeAt,
-        updated_at: new Date().toISOString()
-      })
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    let updateError = null;
+
+    if (existingProgress) {
+      // 记录存在，执行更新
+      const { error } = await supabase
+        .from('user_progress')
+        .update({
+          total_questions: totalQuestions,
+          correct_answers: correctAnswers,
+          total_time: totalTime,
+          last_practice_at: lastPracticeAt,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+      updateError = error;
+    } else {
+      // 记录不存在，执行插入
+      const { error } = await supabase
+        .from('user_progress')
+        .insert({
+          user_id: user.id,
+          total_questions: totalQuestions,
+          correct_answers: correctAnswers,
+          total_time: totalTime,
+          last_practice_at: lastPracticeAt,
+          updated_at: new Date().toISOString()
+        })
+      updateError = error;
+    }
 
     if (updateError) {
       console.error('更新用户进度失败:', updateError)
