@@ -518,88 +518,32 @@ function PracticeContent() {
       userAnswer,
       correctAnswer: question.answer
     })
+
     try {
-      // 检查是否已经在错题本中
-      const { data: existing, error: selectError } = await supabase
-        .from('wrong_questions')
-        .select('id, wrong_count')
-        .eq('user_id', user.id)
-        .eq('question_id', question.id)
-        .single()
-
-      // 如果表不存在或权限问题，直接尝试插入
-      if (selectError && (selectError.code === '42P01' || selectError.message.includes('406') || selectError.status === 406)) {
-        console.warn('查询权限受限，直接尝试插入错题记录')
-        // 跳过查询，直接插入
-        existing = null
-      }
-
-      if (existing) {
-        // 更新错误次数 - 使用基本字段
-        const updateData: any = {
-          last_wrong_at: new Date().toISOString(),
-          is_mastered: false
-        }
-
-        // 添加扩展字段
-        updateData.user_answer = userAnswer
-        updateData.correct_answer = question.answer
-        updateData.wrong_count = (existing.wrong_count || 0) + 1
-
-        await supabase
-          .from('wrong_questions')
-          .update(updateData)
-          .eq('id', existing.id)
-      } else {
-        // 添加新的错题记录
-        const insertData: any = {
-          user_id: user.id,
+      const response = await fetch('/api/wrong-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           question_id: question.id,
           user_answer: userAnswer,
           correct_answer: question.answer,
           question_type: question.type || 'multiple_choice',
           subject: question.subject || '教育学',
-          difficulty: question.difficulty || 'medium',
-          wrong_count: 1,
-          first_wrong_at: new Date().toISOString(),
-          last_wrong_at: new Date().toISOString(),
-          is_mastered: false
-        }
+          difficulty: question.difficulty || 'medium'
+        })
+      })
 
-        const { error: insertError } = await supabase
-          .from('wrong_questions')
-          .upsert(insertData, {
-            onConflict: 'user_id,question_id'
-          })
+      const result = await response.json()
 
-        if (insertError) {
-          console.error('插入错题失败:', insertError)
-          // 如果完整字段插入失败，尝试只用基本字段
-          if (insertError.message.includes('does not exist')) {
-            console.log('尝试使用基本字段重新插入...')
-            const basicData = {
-              user_id: user.id,
-              question_id: question.id,
-              last_wrong_at: new Date().toISOString(),
-              is_mastered: false
-            }
-
-            const { error: basicError } = await supabase
-              .from('wrong_questions')
-              .insert(basicData)
-
-            if (basicError) {
-              console.error('基本字段插入也失败:', basicError)
-            } else {
-              console.log('✅ 使用基本字段成功插入错题')
-            }
-          }
-        } else {
-          console.log('✅ 成功插入错题记录')
-        }
+      if (response.ok) {
+        console.log(`✅ 错题记录${result.action === 'updated' ? '更新' : '添加'}成功，错误次数: ${result.wrongCount}`)
+      } else {
+        console.error('❌ 错题记录失败:', result.error)
       }
     } catch (error) {
-      console.error('添加错题失败:', error)
+      console.error('❌ 添加错题失败:', error)
     }
   }
 
@@ -608,28 +552,19 @@ function PracticeContent() {
     try {
       console.log('🗑️ 错题复习答对，从错题本中移除题目:', questionId)
 
-      const { error, count } = await supabase
-        .from('wrong_questions')
-        .delete({ count: 'exact' })
-        .eq('user_id', user?.id)
-        .eq('question_id', questionId)
+      const response = await fetch(`/api/wrong-questions?questionId=${questionId}`, {
+        method: 'DELETE'
+      })
 
-      // 如果表不存在或权限问题，静默处理
-      if (error && (error.code === '42P01' || error.message.includes('406'))) {
-        console.warn('错题本删除功能暂时不可用:', error.message)
-        return
-      }
+      const result = await response.json()
 
-      if (error) {
-        console.error('❌ 从错题本移除题目失败:', error)
-        // 不显示错误给用户，因为这是后台操作
-      } else {
-        console.log(`✅ 成功从错题本移除题目 (删除了 ${count} 条记录)`)
-
-        // 可选：显示成功提示（但不要太频繁打扰用户）
-        if (count && count > 0) {
+      if (response.ok) {
+        console.log(`✅ 成功从错题本移除题目 (删除了 ${result.deletedCount} 条记录)`)
+        if (result.deletedCount > 0) {
           console.log('🎉 恭喜！这道题已从错题本中移除，说明您已经掌握了！')
         }
+      } else {
+        console.error('❌ 从错题本移除题目失败:', result.error)
       }
     } catch (error) {
       console.error('❌ 移除错题异常:', error)

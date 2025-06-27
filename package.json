@@ -21,6 +21,7 @@
     "fix-predictions": "node scripts/fix-prediction-data.js",
     "simple-fix-predictions": "node scripts/simple-fix-predictions.js",
     "check-options": "node scripts/check-options-format.js",
+    "fix-rls": "node scripts/fix-rls-policies.js",
     "test-apis": "node scripts/test-all-apis.js",
     "fix-all-options": "node scripts/fix-all-options.js"
   },
