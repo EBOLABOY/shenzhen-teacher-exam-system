@@ -538,7 +538,10 @@ function PracticeContent() {
       const result = await response.json()
 
       if (response.ok) {
-        console.log(`✅ 错题记录${result.action === 'updated' ? '更新' : '添加'}成功，错误次数: ${result.wrongCount}`)
+        // 兼容现有API返回格式
+        const wrongCount = result.data?.wrong_count || result.wrongCount || 1
+        const action = result.data ? (result.data.wrong_count > 1 ? '更新' : '添加') : '添加'
+        console.log(`✅ 错题记录${action}成功，错误次数: ${wrongCount}`)
       } else {
         console.error('❌ 错题记录失败:', result.error)
       }

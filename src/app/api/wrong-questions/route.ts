@@ -161,11 +161,12 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       // 更新错误次数和最后错误时间
+      const newWrongCount = (existing.wrong_count || 0) + 1
       const { data, error } = await supabase
         .from('wrong_questions')
         .update({
           user_answer,
-          wrong_count: existing.wrong_count + 1,
+          wrong_count: newWrongCount,
           last_wrong_at: new Date().toISOString(),
           is_mastered: false,
           mastered_at: null
@@ -179,7 +180,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: '更新错题失败' }, { status: 500 })
       }
 
-      return NextResponse.json({ data })
+      return NextResponse.json({
+        data: { ...data, wrong_count: newWrongCount },
+        action: 'updated',
+        wrongCount: newWrongCount
+      })
     } else {
       // 创建新错题记录
       const { data, error } = await supabase
@@ -201,7 +206,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: '添加错题失败' }, { status: 500 })
       }
 
-      return NextResponse.json({ data })
+      return NextResponse.json({
+        data: { ...data, wrong_count: 1 },
+        action: 'inserted',
+        wrongCount: 1
+      })
     }
 
   } catch (error) {
