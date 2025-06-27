@@ -529,21 +529,22 @@ export default function WrongQuestionsPage() {
                         const isUserChoice = userAnswer === key;
 
                         return (
-                        <div key={key} className={`p-3 rounded-lg border-2 transition-all ${
-                          isCorrect
-                            ? 'border-green-500 bg-green-50 text-green-800'
-                            : isUserChoice
-                            ? 'border-red-500 bg-red-50 text-red-800'
-                            : 'border-slate-200 bg-slate-50'
-                        }`}>
-                          <span className="font-bold">{key}.</span> {value}
-                          {isCorrect && (
-                            <span className="ml-2 text-green-600 font-bold">✓ 正确答案</span>
-                          )}
-                          {isUserChoice && !isCorrect && (
-                            <span className="ml-2 text-red-600 font-bold">✗ 您的答案</span>
-                          )}
-                        </div>
+                          <div key={key} className={`p-3 rounded-lg border-2 transition-all ${
+                            isCorrect
+                              ? 'border-green-500 bg-green-50 text-green-800'
+                              : isUserChoice
+                              ? 'border-red-500 bg-red-50 text-red-800'
+                              : 'border-slate-200 bg-slate-50'
+                          }`}>
+                            <span className="font-bold">{key}.</span> {value}
+                            {isCorrect && (
+                              <span className="ml-2 text-green-600 font-bold">✓ 正确答案</span>
+                            )}
+                            {isUserChoice && !isCorrect && (
+                              <span className="ml-2 text-red-600 font-bold">✗ 您的答案</span>
+                            )}
+                          </div>
+                        );
                       ))}
                     </div>
                   ) : (
