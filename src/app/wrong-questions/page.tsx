@@ -525,20 +525,10 @@ export default function WrongQuestionsPage() {
                       })().map(([key, value]) => {
                         const correctAnswer = wrongQuestion.questions?.answer || wrongQuestion.correct_answer;
                         const userAnswer = wrongQuestion.user_answer;
-                        const isCorrect = correctAnswer === key;
-                        const isUserChoice = userAnswer === key;
 
-                        // 调试信息 - 只对第一个选项显示
-                        if (key === 'A') {
-                          console.log('答案标记调试:', {
-                            questionId: wrongQuestion.questions.id,
-                            correctAnswer,
-                            userAnswer,
-                            currentKey: key,
-                            isCorrect,
-                            isUserChoice
-                          });
-                        }
+                        // 修复多选题的答案标记逻辑
+                        const isCorrect = correctAnswer && correctAnswer.includes(key);
+                        const isUserChoice = userAnswer && userAnswer.includes(key);
 
                         return (
                           <div key={key} className={`p-3 rounded-lg border-2 transition-all ${

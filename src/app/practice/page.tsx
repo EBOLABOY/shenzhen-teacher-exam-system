@@ -513,11 +513,16 @@ function PracticeContent() {
 
   // 添加到错题本
   const addToWrongQuestions = async (question: any, userAnswer: string) => {
+    console.log('🔴 添加错题到错题本:', {
+      questionId: question.id,
+      userAnswer,
+      correctAnswer: question.answer
+    })
     try {
       // 检查是否已经在错题本中
       const { data: existing, error: selectError } = await supabase
         .from('wrong_questions')
-        .select('id')
+        .select('id, wrong_count')
         .eq('user_id', user.id)
         .eq('question_id', question.id)
         .single()
@@ -535,39 +540,29 @@ function PracticeContent() {
           is_mastered: false
         }
 
-        // 尝试添加扩展字段（如果表结构支持）
-        try {
-          updateData.user_answer = userAnswer
-        } catch (e) {
-          console.log('user_answer字段不存在，跳过')
-        }
+        // 添加扩展字段
+        updateData.user_answer = userAnswer
+        updateData.correct_answer = question.answer
+        updateData.wrong_count = (existing.wrong_count || 0) + 1
 
         await supabase
           .from('wrong_questions')
           .update(updateData)
           .eq('id', existing.id)
       } else {
-        // 添加新的错题记录 - 先尝试完整字段
-        let insertData: any = {
+        // 添加新的错题记录
+        const insertData: any = {
           user_id: user.id,
           question_id: question.id,
+          user_answer: userAnswer,
+          correct_answer: question.answer,
+          question_type: question.type || 'multiple_choice',
+          subject: question.subject || '教育学',
+          difficulty: question.difficulty || 'medium',
+          wrong_count: 1,
+          first_wrong_at: new Date().toISOString(),
           last_wrong_at: new Date().toISOString(),
           is_mastered: false
-        }
-
-        // 尝试添加扩展字段
-        try {
-          insertData = {
-            ...insertData,
-            user_answer: userAnswer,
-            correct_answer: question.answer,
-            question_type: question.type || 'multiple_choice',
-            subject: question.subject,
-            difficulty: question.difficulty,
-            first_wrong_at: new Date().toISOString()
-          }
-        } catch (e) {
-          console.log('使用基本字段插入错题记录')
         }
 
         const { error: insertError } = await supabase
