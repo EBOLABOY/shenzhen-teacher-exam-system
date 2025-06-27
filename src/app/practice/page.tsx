@@ -527,10 +527,11 @@ function PracticeContent() {
         .eq('question_id', question.id)
         .single()
 
-      // 如果表不存在或权限问题，静默处理
-      if (selectError && (selectError.code === '42P01' || selectError.message.includes('406'))) {
-        console.warn('错题本功能暂时不可用:', selectError.message)
-        return
+      // 如果表不存在或权限问题，直接尝试插入
+      if (selectError && (selectError.code === '42P01' || selectError.message.includes('406') || selectError.status === 406)) {
+        console.warn('查询权限受限，直接尝试插入错题记录')
+        // 跳过查询，直接插入
+        existing = null
       }
 
       if (existing) {
@@ -567,7 +568,9 @@ function PracticeContent() {
 
         const { error: insertError } = await supabase
           .from('wrong_questions')
-          .insert(insertData)
+          .upsert(insertData, {
+            onConflict: 'user_id,question_id'
+          })
 
         if (insertError) {
           console.error('插入错题失败:', insertError)
