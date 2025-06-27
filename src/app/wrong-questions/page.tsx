@@ -545,7 +545,7 @@ export default function WrongQuestionsPage() {
                             )}
                           </div>
                         );
-                      ))}
+                      })}
                     </div>
                   ) : (
                     <div className="text-slate-500 mb-4">选项信息缺失</div>
