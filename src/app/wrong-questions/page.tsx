@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer } from '@/components/ui'
@@ -72,6 +72,13 @@ export default function WrongQuestionsPage() {
   const [user, setUser] = useState<any>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null)
+
+  // 使用 useMemo 优化科目数量计算
+  const uniqueSubjectsCount = useMemo(() => {
+    if (!wrongQuestions || wrongQuestions.length === 0) return 0
+    const subjects = new Set(wrongQuestions.map(wq => wq.subject || wq.questions?.subject || '未知科目'))
+    return subjects.size
+  }, [wrongQuestions])
 
   useEffect(() => {
     checkUser()
@@ -160,12 +167,26 @@ export default function WrongQuestionsPage() {
       console.log('🤖 开始AI分析错题...')
       console.log('错题数量:', wrongQuestions.length)
 
+      // 为了AI分析，创建一个更简洁的数据载荷 (payload)
+      const analysisPayload = wrongQuestions.map(wq => ({
+        question: wq.questions?.question,
+        options: wq.questions?.options,
+        userAnswer: wq.user_answer,
+        correctAnswer: wq.questions?.answer,
+        explanation: wq.questions?.explanation,
+        subject: wq.subject || wq.questions?.subject,
+        difficulty: wq.difficulty || wq.questions?.difficulty
+      }))
+
+      console.log('发送给AI的数据:', analysisPayload.length, '条错题')
+
       // 调用服务端AI分析API
       const response = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ questions: analysisPayload })
       })
 
       console.log('响应状态:', response.status, response.statusText)
@@ -402,7 +423,7 @@ export default function WrongQuestionsPage() {
             </div>
             <h3 className="text-lg font-bold text-slate-800 mb-2">涉及科目</h3>
             <p className="text-3xl font-bold text-blue-600">
-              {new Set(wrongQuestions.map(wq => wq.subject || wq.questions?.subject || '未知科目')).size}
+              {uniqueSubjectsCount}
             </p>
           </GlassCard>
 
