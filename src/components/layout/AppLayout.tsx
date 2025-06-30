@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import TopNavigation from './TopNavigation'
 import BottomNavigation from './BottomNavigation'
+import PWAInstallPrompt from '@/components/ui/PWAInstallPrompt'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -41,6 +42,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {children}
       </main>
       {shouldShowNav && !isPracticePage && <BottomNavigation />}
+      <PWAInstallPrompt />
     </div>
   )
 }
