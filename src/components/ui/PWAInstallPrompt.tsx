@@ -19,13 +19,16 @@ export default function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
+    // 确保只在客户端执行
+    if (typeof window === 'undefined') return
+
     // 检查是否已经安装
     const checkInstalled = () => {
       if (window.matchMedia('(display-mode: standalone)').matches) {
         setIsInstalled(true)
         return
       }
-      
+
       // 检查是否在iOS Safari中以全屏模式运行
       if ((window.navigator as any).standalone === true) {
         setIsInstalled(true)

@@ -10,12 +10,15 @@ export default function PWATest() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
 
   useEffect(() => {
+    // 确保只在客户端执行
+    if (typeof window === 'undefined') return
+
     // 检查网络状态
     setIsOnline(navigator.onLine)
-    
+
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
-    
+
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
@@ -36,27 +39,27 @@ export default function PWATest() {
   }, [])
 
   const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission()
-      setNotificationPermission(permission)
-      
-      if (permission === 'granted') {
-        new Notification('通知已启用！', {
-          body: '您将收到学习提醒和重要通知',
-          icon: '/icons/icon-192x192.png'
-        })
-      }
+    if (typeof window === 'undefined' || !('Notification' in window)) return
+
+    const permission = await Notification.requestPermission()
+    setNotificationPermission(permission)
+
+    if (permission === 'granted') {
+      new Notification('通知已启用！', {
+        body: '您将收到学习提醒和重要通知',
+        icon: '/icons/icon-192x192.png'
+      })
     }
   }
 
   const testNotification = () => {
-    if (notificationPermission === 'granted') {
-      new Notification('测试通知', {
-        body: '这是一个PWA测试通知',
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-72x72.png'
-      })
-    }
+    if (typeof window === 'undefined' || notificationPermission !== 'granted') return
+
+    new Notification('测试通知', {
+      body: '这是一个PWA测试通知',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png'
+    })
   }
 
   const testOfflineMode = () => {
@@ -181,7 +184,7 @@ export default function PWATest() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-600">Service Worker</span>
                 <span className="text-sm font-medium">
-                  {'serviceWorker' in navigator ? '✅ 支持' : '❌ 不支持'}
+                  {typeof window !== 'undefined' && 'serviceWorker' in navigator ? '✅ 支持' : '❌ 不支持'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -195,13 +198,13 @@ export default function PWATest() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-600">推送通知</span>
                 <span className="text-sm font-medium">
-                  {'Notification' in window ? '✅ 支持' : '❌ 不支持'}
+                  {typeof window !== 'undefined' && 'Notification' in window ? '✅ 支持' : '❌ 不支持'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-600">后台同步</span>
                 <span className="text-sm font-medium">
-                  {'serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype ? '✅ 支持' : '❌ 不支持'}
+                  {typeof window !== 'undefined' && 'serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype ? '✅ 支持' : '❌ 不支持'}
                 </span>
               </div>
             </div>
