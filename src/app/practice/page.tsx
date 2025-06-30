@@ -449,11 +449,14 @@ function PracticeContent() {
         await addToWrongQuestions(currentQuestion, selectedAnswer)
       }
 
-      // 如果是错题复习模式且答对了，从错题本中移除该题目
+      // 如果是错题复习模式且答对了，立即触发烟花动画，然后从错题本中移除该题目
       if (isCorrect && isTaskMode && currentTask && currentTask.task_type === 'wrong_questions_review') {
-        await removeFromWrongQuestions(currentQuestion.id)
-        // 触发烟花动画
+        // 立即触发烟花动画，不等待API调用
         setShowFireworks(true)
+        // 异步删除错题，不阻塞UI
+        removeFromWrongQuestions(currentQuestion.id).catch(error => {
+          console.error('删除错题失败:', error)
+        })
       }
 
       // 如果是任务模式，记录任务进度
@@ -1043,7 +1046,7 @@ function PracticeContent() {
       <FireworksAnimation
         isVisible={showFireworks}
         onComplete={() => setShowFireworks(false)}
-        duration={3000}
+        duration={1500}
       />
     </div>
   )
