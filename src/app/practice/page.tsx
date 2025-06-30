@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, RotateCcw, CheckCircle, LogOut, Brain, Targe
 import { createBrowserClient } from '@supabase/ssr'
 import { GlassCard, GlassButton, GlassContainer, LoadingGlass } from '@/components/ui'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import FireworksAnimation from '@/components/ui/FireworksAnimation'
 
 function PracticeContent() {
   const router = useRouter()
@@ -33,7 +34,7 @@ function PracticeContent() {
   const [currentTask, setCurrentTask] = useState<any>(null)
   const [isTaskMode, setIsTaskMode] = useState(false)
   const [taskProgress, setTaskProgress] = useState<any[]>([])
-  const [isWrongQuestionMastered, setIsWrongQuestionMastered] = useState(false)
+  const [showFireworks, setShowFireworks] = useState(false)
 
   // 考试模式状态
   const [isExamMode, setIsExamMode] = useState(false)
@@ -451,8 +452,8 @@ function PracticeContent() {
       // 如果是错题复习模式且答对了，从错题本中移除该题目
       if (isCorrect && isTaskMode && currentTask && currentTask.task_type === 'wrong_questions_review') {
         await removeFromWrongQuestions(currentQuestion.id)
-        // 设置一个标记，在UI中显示特殊提示
-        setIsWrongQuestionMastered(true)
+        // 触发烟花动画
+        setShowFireworks(true)
       }
 
       // 如果是任务模式，记录任务进度
@@ -592,7 +593,7 @@ function PracticeContent() {
       setSelectedAnswer('')
       setSelectedAnswers([])
       setShowExplanation(false)
-      setIsWrongQuestionMastered(false) // 重置错题掌握状态
+      setShowFireworks(false) // 重置烟花状态
       setStartTime(new Date()) // 重置计时
     }
   }
@@ -961,20 +962,7 @@ function PracticeContent() {
                   <p className="text-slate-700 leading-relaxed font-medium">{currentQuestion.explanation}</p>
                 </GlassCard>
 
-                {/* 错题掌握提示 */}
-                {isWrongQuestionMastered && (
-                  <GlassCard variant="light" className="border-l-4 border-purple-500 bg-gradient-to-r from-purple-50/50 to-pink-50/50 mt-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-lg">🎉</span>
-                      </div>
-                      <span className="font-bold text-purple-800 text-lg">恭喜！错题已掌握</span>
-                    </div>
-                    <p className="text-purple-700 leading-relaxed font-medium">
-                      您答对了这道错题，说明已经掌握了相关知识点。这道题已从您的错题本中移除！
-                    </p>
-                  </GlassCard>
-                )}
+
               </>
             )}
           </div>
@@ -1050,6 +1038,13 @@ function PracticeContent() {
           </div>
         )}
       </GlassContainer>
+
+      {/* 烟花动画 */}
+      <FireworksAnimation
+        isVisible={showFireworks}
+        onComplete={() => setShowFireworks(false)}
+        duration={3000}
+      />
     </div>
   )
 }

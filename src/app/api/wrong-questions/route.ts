@@ -218,3 +218,58 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })
   }
 }
+
+// 删除错题（根据questionId）
+export async function DELETE(request: NextRequest) {
+  try {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: '未授权访问' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const questionId = searchParams.get('questionId')
+
+    if (!questionId) {
+      return NextResponse.json({ error: '缺少questionId参数' }, { status: 400 })
+    }
+
+    // 删除用户的该题目错题记录
+    const { data: deletedRecords, error } = await supabase
+      .from('wrong_questions')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('question_id', parseInt(questionId))
+      .select()
+
+    if (error) {
+      console.error('删除错题失败:', error)
+      return NextResponse.json({ error: '删除错题失败' }, { status: 500 })
+    }
+
+    const deletedCount = deletedRecords?.length || 0
+
+    return NextResponse.json({
+      message: '删除成功',
+      deletedCount,
+      questionId: parseInt(questionId)
+    })
+
+  } catch (error) {
+    console.error('API错误:', error)
+    return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })
+  }
+}

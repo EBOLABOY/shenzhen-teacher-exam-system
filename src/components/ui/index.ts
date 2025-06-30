@@ -12,3 +12,4 @@ export {
 export { default as AnalysisTimeline } from './AnalysisTimeline'
 export { default as MindMapVisualization } from './MindMapVisualization'
 export { default as ThinkingAnimation } from './ThinkingAnimation'
+export { default as FireworksAnimation } from './FireworksAnimation'
