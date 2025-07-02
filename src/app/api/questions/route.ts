@@ -59,9 +59,17 @@ export async function GET(request: NextRequest) {
       query = query.eq('difficulty', difficulty)
     }
 
-    // 如果需要随机排序，适度获取更多数据用于随机选择
+    // 如果需要随机排序，获取更多数据用于随机选择
     if (random) {
-      query = query.limit(Math.max(limit + 5, 25)) // 只获取limit+5道题目，节省资源
+      // 先获取总数量
+      const { count: totalCount } = await supabase
+        .from('questions')
+        .select('*', { count: 'exact', head: true })
+        .not('id', 'in', excludeAnswered && user && answeredQuestionIds.length > 0 ? `(${answeredQuestionIds.join(',')})` : '(0)')
+
+      // 计算合适的获取数量：至少是limit的2倍，但不超过剩余题目总数
+      const fetchLimit = Math.min(Math.max(limit * 2, 50), totalCount || limit)
+      query = query.limit(fetchLimit)
     } else {
       query = query.limit(limit)
     }
@@ -76,11 +84,14 @@ export async function GET(request: NextRequest) {
 
     let finalQuestions = questions || []
 
-    // 如果需要随机排序，从获取的数据中随机选择
+    // 如果需要随机排序，使用Fisher-Yates算法进行真正的随机选择
     if (random && finalQuestions.length > 0) {
-      finalQuestions = finalQuestions
-        .sort(() => Math.random() - 0.5)
-        .slice(0, limit)
+      // Fisher-Yates洗牌算法
+      for (let i = finalQuestions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [finalQuestions[i], finalQuestions[j]] = [finalQuestions[j], finalQuestions[i]]
+      }
+      finalQuestions = finalQuestions.slice(0, limit)
     }
 
     // 格式化题目数据，确保选项是对象格式

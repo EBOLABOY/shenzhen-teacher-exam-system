@@ -23,7 +23,17 @@
     "check-options": "node scripts/check-options-format.js",
     "fix-rls": "node scripts/fix-rls-policies.js",
     "test-apis": "node scripts/test-all-apis.js",
-    "fix-all-options": "node scripts/fix-all-options.js"
+    "fix-all-options": "node scripts/fix-all-options.js",
+    "seo-check": "node scripts/seo-check.js",
+    "deduplicate": "node scripts/deduplicate-questions.js",
+    "check-duplicates": "node scripts/check-duplicates.js",
+    "check-after-1000": "node scripts/check-after-1000.js",
+    "remove-duplicates-after-1000": "node scripts/remove-duplicates-after-1000.js",
+    "remove-duplicates-after-1000-real": "node scripts/remove-duplicates-after-1000.js --real",
+    "analyze-distribution": "node scripts/analyze-question-distribution.js",
+    "fix-user-answers": "node scripts/fix-user-answers.js",
+    "fix-user-answers-real": "node scripts/fix-user-answers.js --real",
+    "seo-submit": "node scripts/seo-submit.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",

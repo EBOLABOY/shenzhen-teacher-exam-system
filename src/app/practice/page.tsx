@@ -8,6 +8,16 @@ import { GlassCard, GlassButton, GlassContainer, LoadingGlass } from '@/componen
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import FireworksAnimation from '@/components/ui/FireworksAnimation'
 
+// Fisher-Yates 洗牌算法，确保真正的随机性
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 function PracticeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -311,40 +321,109 @@ function PracticeContent() {
     }
   }
 
+  // 实时获取用户已做过的题目ID（确保跨设备同步）
+  const getUserAnsweredQuestions = async (userId: string) => {
+    const { data: userAnswers, error } = await supabase
+      .from('user_answers')
+      .select('question_id')
+      .eq('user_id', userId)
+
+    if (error) {
+      console.error('获取用户答题记录失败:', error)
+      return []
+    }
+
+    return userAnswers?.map(answer => answer.question_id) || []
+  }
+
+  // 检查单个题目是否已做过（实时检查）
+  const isQuestionAnswered = async (userId: string, questionId: number) => {
+    const { data, error } = await supabase
+      .from('user_answers')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('question_id', questionId)
+      .limit(1)
+
+    if (error) {
+      console.error('检查题目状态失败:', error)
+      return false
+    }
+
+    return data && data.length > 0
+  }
+
   const fetchQuestions = async (currentUser = user) => {
     if (!currentUser) return
     try {
-      // 1. 获取用户已做过的题目ID
-      const { data: userAnswers, error: answersError } = await supabase
-        .from('user_answers')
-        .select('question_id')
-        .eq('user_id', currentUser.id)
+      // 1. 实时获取用户已做过的题目ID（确保跨设备同步）
+      console.log('🔄 从数据库实时获取已做题目记录...')
+      const rawAnsweredIds = await getUserAnsweredQuestions(currentUser.id)
 
-      if (answersError) {
-        console.error('获取用户答题记录失败:', answersError)
+      // 2. 获取所有有效的题目ID
+      const { data: allValidQuestions, error: validQuestionsError } = await supabase
+        .from('questions')
+        .select('id')
+
+      if (validQuestionsError) {
+        console.error('获取有效题目ID失败:', validQuestionsError)
+        return
       }
 
-      const answeredQuestionIds = userAnswers?.map(answer => answer.question_id) || []
+      const validQuestionIds = new Set(allValidQuestions?.map(q => q.id) || [])
 
-      // 2. 构建查询，排除已做过的题目
+      // 3. 过滤出有效的已答题目ID
+      const answeredQuestionIds = rawAnsweredIds.filter(id => validQuestionIds.has(id))
+
+      console.log(`📊 用户总答题记录: ${rawAnsweredIds.length} 条`)
+      console.log(`📊 有效已做题目: ${answeredQuestionIds.length} 道`)
+      console.log(`📊 数据库总题目数: ${validQuestionIds.size} 道`)
+
+      if (rawAnsweredIds.length !== answeredQuestionIds.length) {
+        console.warn(`⚠️  发现 ${rawAnsweredIds.length - answeredQuestionIds.length} 条无效答题记录`)
+      }
+
+      // 4. 计算剩余题目数量
+      const totalQuestions = validQuestionIds.size
+      const remainingQuestions = totalQuestions - answeredQuestionIds.length
+      console.log(`📊 剩余未做题目数: ${remainingQuestions} 道`)
+
+      if (remainingQuestions <= 0) {
+        console.log('🎉 恭喜！您已经完成了所有题目的练习')
+        setQuestions([])
+        setCurrentQuestionIndex(0)
+        setShowExplanation(false)
+        setSelectedAnswer('')
+        alert('恭喜！您已经完成了所有题目的练习。可以选择复习错题或等待新题目更新。')
+        return
+      }
+
+      // 5. 构建查询，强制排除已做过的题目
       let query = supabase
         .from('questions')
         .select('*')
 
-      // 如果有已做过的题目，排除它们
+      // 强制排除已做过的题目 - 确保跨设备同步
       if (answeredQuestionIds.length > 0) {
         query = query.not('id', 'in', `(${answeredQuestionIds.join(',')})`)
+        console.log(`🚫 排除已做题目ID: ${answeredQuestionIds.slice(0, 10).join(', ')}${answeredQuestionIds.length > 10 ? '...' : ''}`)
+      } else {
+        console.log('✨ 用户首次练习，无需排除题目')
       }
 
-      // 3. 只获取25道题目，给5道题的容错空间
+      // 6. 智能获取题目数量：如果剩余题目很少，就全部获取；否则获取足够的数量用于随机选择
+      const fetchLimit = Math.min(Math.max(remainingQuestions, 20), 100) // 最少20道，最多100道
+
       const { data: allQuestions, error } = await query
-        .order('id', { ascending: false }) // 先按ID排序
-        .limit(25) // 只获取25道题目，节省资源
+        .order('id', { ascending: false }) // 按ID排序
+        .limit(fetchLimit)
 
       if (error) throw error
 
       if (allQuestions && allQuestions.length > 0) {
-        // 4. 格式化题目数据，确保选项是对象格式
+        console.log(`获取到 ${allQuestions.length} 道未做题目`)
+
+        // 6. 格式化题目数据，确保选项是对象格式
         const formattedQuestions = allQuestions.map(q => {
           let options = q.options;
 
@@ -370,12 +449,31 @@ function PracticeContent() {
           };
         });
 
-        // 5. 从格式化的题目中随机选择20道
-        const shuffled = formattedQuestions
-          .sort(() => Math.random() - 0.5) // 更好的随机排序
-          .slice(0, Math.min(20, formattedQuestions.length))
+        // 7. 二次验证：确保选中的题目都是未做过的
+        const doubleCheckedQuestions = formattedQuestions.filter(q =>
+          !answeredQuestionIds.includes(q.id)
+        )
 
-        setQuestions(shuffled)
+        if (doubleCheckedQuestions.length !== formattedQuestions.length) {
+          console.warn(`⚠️  发现 ${formattedQuestions.length - doubleCheckedQuestions.length} 道已做过的题目被意外包含，已自动过滤`)
+        }
+
+        // 8. 使用更好的随机算法选择题目
+        const selectedQuestions = shuffleArray(doubleCheckedQuestions)
+          .slice(0, Math.min(20, doubleCheckedQuestions.length))
+
+        // 9. 最终验证：确保没有重复题目
+        const finalVerification = selectedQuestions.every(q => !answeredQuestionIds.includes(q.id))
+        if (!finalVerification) {
+          console.error('❌ 最终验证失败：仍有已做过的题目')
+          alert('题目选择出现问题，请刷新页面重试')
+          return
+        }
+
+        console.log(`✅ 最终选择了 ${selectedQuestions.length} 道全新题目进行练习`)
+        console.log(`📊 题目ID范围: ${Math.min(...selectedQuestions.map(q => q.id))} - ${Math.max(...selectedQuestions.map(q => q.id))}`)
+
+        setQuestions(selectedQuestions)
         setStartTime(new Date())
 
         // 练习题目获取成功
@@ -411,14 +509,30 @@ function PracticeContent() {
 
   const handleSubmitAnswer = async () => {
     if (!selectedAnswer || !user || !currentQuestion) return
+
+    // 🔒 额外安全检查：确保题目确实没有做过（防止跨设备数据不同步）
+    const alreadyAnswered = await isQuestionAnswered(user.id, currentQuestion.id)
+    if (alreadyAnswered) {
+      console.warn(`⚠️  题目 ${currentQuestion.id} 已在其他设备做过，跳过记录`)
+      alert('此题目已在其他设备完成，将为您加载新题目')
+      await fetchQuestions()
+      setCurrentQuestionIndex(0)
+      return
+    }
+
     const isCorrect = selectedAnswer === currentQuestion.answer
     setShowExplanation(true)
     if (isCorrect) {
       setScore(prev => prev + 1)
     }
 
+    // 如果是错题复习模式且答对了，立即触发烟花动画
+    if (isCorrect && isTaskMode && currentTask && currentTask.task_type === 'wrong_questions_review') {
+      setShowFireworks(true)
+    }
+
     try {
-      // 记录用户答题记录（无论是否为任务模式）
+      // 记录用户答题记录到数据库（无论是否为任务模式）
       await supabase
         .from('user_answers')
         .insert({
@@ -428,6 +542,8 @@ function PracticeContent() {
           is_correct: isCorrect,
           time_spent: startTime ? Math.round((Date.now() - startTime.getTime()) / 1000) : 0
         })
+
+      console.log(`✅ 题目 ${currentQuestion.id} 已记录到数据库，跨设备同步`)
 
       // 更新已完成题目数量
       setCompletedQuestions(prev => prev + 1)
@@ -449,11 +565,8 @@ function PracticeContent() {
         await addToWrongQuestions(currentQuestion, selectedAnswer)
       }
 
-      // 如果是错题复习模式且答对了，立即触发烟花动画，然后从错题本中移除该题目
+      // 如果是错题复习模式且答对了，异步删除错题，不阻塞UI
       if (isCorrect && isTaskMode && currentTask && currentTask.task_type === 'wrong_questions_review') {
-        // 立即触发烟花动画，不等待API调用
-        setShowFireworks(true)
-        // 异步删除错题，不阻塞UI
         removeFromWrongQuestions(currentQuestion.id).catch(error => {
           console.error('删除错题失败:', error)
         })
@@ -579,17 +692,35 @@ function PracticeContent() {
     }
   }
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
     if (isLastQuestion) {
       if (isTaskMode && currentTask) {
         // 任务模式完成
         const accuracy = Math.round((score / questions.length) * 100)
         alert(`任务完成！\n总题数：${questions.length}\n正确：${score}\n准确率：${accuracy}%`)
         router.push('/tasks')
-      } else {
-        // 普通练习模式完成
+      } else if (isExamMode || isPredictionMode) {
+        // 考试模式或预测模式完成
         alert(`练习完成！您的得分：${score}/${questions.length}`)
         router.push('/')
+      } else {
+        // 普通练习模式：自动获取新题目继续练习（确保跨设备同步）
+        console.log('🔄 当前批次完成，自动获取新题目继续练习...')
+        try {
+          await fetchQuestions()
+          setCurrentQuestionIndex(0)
+          setSelectedAnswer('')
+          setSelectedAnswers([])
+          setShowExplanation(false)
+          setShowFireworks(false)
+          setStartTime(new Date())
+          // 重置得分，开始新一轮
+          setScore(0)
+        } catch (error) {
+          console.error('获取新题目失败:', error)
+          alert(`本轮练习完成！您的得分：${score}/${questions.length}`)
+          router.push('/')
+        }
       }
     } else {
       setCurrentQuestionIndex(prev => prev + 1)

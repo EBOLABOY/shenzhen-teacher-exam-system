@@ -1,0 +1,57 @@
+# 深圳教师考编练习系统 - Robots.txt
+# 允许所有搜索引擎爬虫访问
+
+User-agent: *
+Allow: /
+
+# 禁止访问管理后台和API路径
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /set-admin/
+
+# 禁止访问测试页面
+Disallow: /test-*
+Disallow: /pwa-test/
+
+# 允许访问重要页面
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /practice
+Allow: /exams
+Allow: /wrong-questions
+
+# 针对百度爬虫的特殊设置
+User-agent: Baiduspider
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /practice
+Allow: /exams
+Allow: /wrong-questions
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /set-admin/
+Disallow: /test-*
+
+# 针对Google爬虫的特殊设置
+User-agent: Googlebot
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /practice
+Allow: /exams
+Allow: /wrong-questions
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /set-admin/
+Disallow: /test-*
+
+# Sitemap位置
+Sitemap: https://szjk.izlx.de/sitemap.xml
+
+# 爬取延迟设置（避免过于频繁的请求）
+Crawl-delay: 1
