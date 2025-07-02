@@ -336,22 +336,7 @@ function PracticeContent() {
     return userAnswers?.map(answer => answer.question_id) || []
   }
 
-  // 检查单个题目是否已做过（实时检查）
-  const isQuestionAnswered = async (userId: string, questionId: number) => {
-    const { data, error } = await supabase
-      .from('user_answers')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('question_id', questionId)
-      .limit(1)
 
-    if (error) {
-      console.error('检查题目状态失败:', error)
-      return false
-    }
-
-    return data && data.length > 0
-  }
 
   const fetchQuestions = async (currentUser = user) => {
     if (!currentUser) return
@@ -509,16 +494,6 @@ function PracticeContent() {
 
   const handleSubmitAnswer = async () => {
     if (!selectedAnswer || !user || !currentQuestion) return
-
-    // 🔒 额外安全检查：确保题目确实没有做过（防止跨设备数据不同步）
-    const alreadyAnswered = await isQuestionAnswered(user.id, currentQuestion.id)
-    if (alreadyAnswered) {
-      console.warn(`⚠️  题目 ${currentQuestion.id} 已在其他设备做过，跳过记录`)
-      alert('此题目已在其他设备完成，将为您加载新题目')
-      await fetchQuestions()
-      setCurrentQuestionIndex(0)
-      return
-    }
 
     const isCorrect = selectedAnswer === currentQuestion.answer
     setShowExplanation(true)
