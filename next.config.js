@@ -82,30 +82,9 @@ const nextConfig = {
   },
   // 压缩配置
   compress: true,
-  // 实验性功能
-  experimental: {
-    optimizeCss: true,
-  },
-  // 头部配置
+  // 简化头部配置
   async headers() {
     return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-        ],
-      },
       {
         source: '/icons/(.*)',
         headers: [
@@ -123,6 +102,15 @@ const nextConfig = {
       ...config.resolve.alias,
       '@': require('path').resolve(__dirname, 'src')
     }
+
+    // 忽略Supabase realtime的警告
+    config.ignoreWarnings = [
+      {
+        module: /node_modules\/@supabase\/realtime-js/,
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+    ]
+
     return config
   }
 }
