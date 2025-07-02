@@ -65,7 +65,6 @@ const withPWA = require('next-pwa')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@supabase/supabase-js'],
   typescript: {
     // 暂时跳过类型检查以加快构建
     ignoreBuildErrors: true,
@@ -86,7 +85,6 @@ const nextConfig = {
   // 实验性功能
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
   },
   // 头部配置
   async headers() {
