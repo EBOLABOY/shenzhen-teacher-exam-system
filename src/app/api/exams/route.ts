@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         .from('questions')
         .select('id, exam_year, exam_date, exam_segment')
         .not('exam_year', 'is', null)
+        .not('exam_segment', 'ilike', '%预测%')  // 排除预测题
         .range(from, from + pageSize - 1)
 
       if (pageError) {
